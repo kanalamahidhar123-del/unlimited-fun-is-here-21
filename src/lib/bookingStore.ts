@@ -38,16 +38,20 @@ export interface BookingRecord {
   type: BookingType;
   full_name: string;
   mobile_number: string;
+  whatsapp_number?: string | null;
   email: string | null;
   visit_date: string;
   preferred_time: string;
+  adults?: number;
+  children?: number;
   category: string;
   duration: string;
   quantity: number;
+  rfid_card_type?: string | null;
   price_per_unit: number;
-  booking_amount: number;      // Calculated package total (e.g. ₹300)
-  paid_amount: number;         // Actual amount customer paid via Razorpay/UPI
-  total_amount?: number;       // Legacy alias for booking_amount
+  booking_amount: number;
+  paid_amount: number;
+  total_amount?: number;
   utr: string;
   payment_method?: PaymentMethod;
   razorpay_order_id?: string | null;
@@ -78,8 +82,8 @@ export function getBookings(): BookingRecord[] {
       .map((b) => ({
         ...b,
         booking_amount: b.booking_amount ?? b.total_amount ?? 0,
-        paid_amount: b.paid_amount ?? b.booking_amount ?? b.total_amount ?? 0,
-        payment_method: b.payment_method ?? (b.razorpay_payment_id ? 'Razorpay' : 'UPI Manual'),
+        paid_amount: b.paid_amount ?? 0,
+        payment_method: b.payment_method ?? 'Registration Only',
       }))
       .sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -93,7 +97,6 @@ export function getBookings(): BookingRecord[] {
 export function saveBookings(bookings: BookingRecord[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(bookings));
-    // Dispatch custom event so all open views/admin reactive hooks update
     window.dispatchEvent(new Event('unlimited_fun_bookings_updated'));
   } catch (e) {
     console.error('Failed to save bookings to storage', e);
@@ -107,6 +110,10 @@ export async function createBooking(
   > & {
     id?: string;
     booking_id?: string;
+    whatsapp_number?: string | null;
+    adults?: number;
+    children?: number;
+    rfid_card_type?: string | null;
     payment_status?: PaymentStatus;
     booking_status?: BookingStatus;
     payment_method?: PaymentMethod;
@@ -118,27 +125,28 @@ export async function createBooking(
   }
 ): Promise<BookingRecord> {
   const isRazorpaySuccess = Boolean(input.razorpay_payment_id);
-  const isRegistrationOnly = input.payment_method === 'Registration Only';
   const paymentStatus: PaymentStatus =
-    input.payment_status ||
-    (isRegistrationOnly ? 'Not Required' : isRazorpaySuccess ? 'Successful' : 'Pending Verification');
+    input.payment_status || (isRazorpaySuccess ? 'Successful' : 'Pending Verification');
   const bookingStatus: BookingStatus =
-    input.booking_status ||
-    (isRegistrationOnly ? 'Registration Received' : isRazorpaySuccess ? 'Confirmed' : 'Pending');
+    input.booking_status || 'Pending Payment';
 
   const newBooking: BookingRecord = {
     id: input.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
     booking_id: input.booking_id || generateBookingId(input.type),
     ...input,
+    whatsapp_number: input.whatsapp_number || input.mobile_number,
+    adults: input.adults ?? (input.type === 'RFID' ? 0 : input.quantity || 1),
+    children: input.children ?? 0,
+    rfid_card_type: input.rfid_card_type || (input.type === 'RFID' ? input.category : 'None'),
     booking_amount: Number(input.booking_amount) || 0,
-    paid_amount: isRegistrationOnly ? 0 : Number(input.paid_amount) || 0,
+    paid_amount: Number(input.paid_amount) || 0,
     total_amount: Number(input.booking_amount) || 0,
-    payment_method: input.payment_method || (isRazorpaySuccess ? 'Razorpay' : 'UPI Manual'),
+    payment_method: input.payment_method || 'Registration Only',
     razorpay_order_id: input.razorpay_order_id || null,
     razorpay_payment_id: input.razorpay_payment_id || null,
     razorpay_signature: input.razorpay_signature || null,
     razorpay_signature_verified: input.razorpay_signature_verified ?? isRazorpaySuccess,
-    payment_verified_at: input.payment_verified_at || (isRazorpaySuccess ? new Date().toISOString() : null),
+    payment_verified_at: input.payment_verified_at || null,
     payment_status: paymentStatus,
     booking_status: bookingStatus,
     created_at: new Date().toISOString(),
@@ -148,35 +156,46 @@ export async function createBooking(
   existing.unshift(newBooking);
   saveBookings(existing);
 
-  // Sync to Google Sheet Webhook
+  // Sync to Google Sheet Webhook with required columns
   const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
   if (sheetUrl) {
     try {
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
       await fetch(sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
-          type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
-          booking_id: newBooking.booking_id,
-          name: newBooking.full_name,
-          phone: newBooking.mobile_number,
+          // Columns required by user:
+          timestamp: nowStr,
+          Timestamp: nowStr,
+          full_name: newBooking.full_name,
+          "Full Name": newBooking.full_name,
+          mobile_number: newBooking.mobile_number,
+          "Mobile Number": newBooking.mobile_number,
+          whatsapp_number: newBooking.whatsapp_number || newBooking.mobile_number,
+          "WhatsApp Number": newBooking.whatsapp_number || newBooking.mobile_number,
           email: newBooking.email || '',
+          Email: newBooking.email || '',
           visit_date: newBooking.visit_date,
+          "Visit Date": newBooking.visit_date,
           time: newBooking.preferred_time,
-          guests: `${newBooking.quantity} ${newBooking.type === 'RFID' ? 'Cards' : 'Guests'}`,
-          category: newBooking.category,
-          duration: newBooking.duration,
-          booking_amount: `₹${newBooking.booking_amount}`,
-          paid_amount: `₹${newBooking.paid_amount}`,
-          amount: `Paid: ₹${newBooking.paid_amount} (Booking Total: ₹${newBooking.booking_amount})`,
-          payment_method: newBooking.payment_method,
-          razorpay_payment_id: newBooking.razorpay_payment_id || '',
-          utr: newBooking.utr || newBooking.razorpay_payment_id || '',
-          payment_status: newBooking.payment_status,
-          booking_status: newBooking.booking_status,
+          Time: newBooking.preferred_time,
+          adults: newBooking.adults || 0,
+          Adults: newBooking.adults || 0,
+          children: newBooking.children || 0,
+          Children: newBooking.children || 0,
+          package: `${newBooking.category} (${newBooking.duration})`,
+          Package: `${newBooking.category} (${newBooking.duration})`,
+          rfid_card: newBooking.rfid_card_type || 'None',
+          "RFID Card": newBooking.rfid_card_type || 'None',
+          booking_status: 'Pending Payment',
+          "Booking Status": 'Pending Payment',
           special_request: newBooking.special_request || '',
-          submitted_at: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          "Special Request": newBooking.special_request || '',
+          booking_id: newBooking.booking_id,
+          type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
+          guests: `${(newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity} Guests`,
         }),
       });
     } catch (err) {

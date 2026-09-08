@@ -96,10 +96,16 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-ink-800 text-center">
+        <div className="pt-8 border-t border-ink-800 text-center flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-ink-500">
             © 2026 Unlimited Fun. All Rights Reserved.
           </p>
+          <a
+            href="#admin"
+            className="text-xs text-ink-600 hover:text-volt-400 transition-colors uppercase tracking-widest font-semibold flex items-center gap-1.5"
+          >
+            <span>🔐</span> Admin Portal
+          </a>
         </div>
       </div>
     </footer>
