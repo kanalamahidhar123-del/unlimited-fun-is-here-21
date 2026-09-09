@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import {
   getBookings,
+  fetchBookingsFromServer,
   updateBookingStatus,
   deleteBooking,
   clearAllBookings,
@@ -33,7 +34,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid'>('overview');
-  const [bookings, setBookings] = useState<BookingRecord[]>([]);
+  const [bookings, setBookings] = useState<BookingRecord[]>(getBookings());
   const [stats, setStats] = useState(getDashboardStats());
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
   const [sysMode, setSysMode] = useState<SystemPaymentMode>(getSystemPaymentMode());
@@ -45,11 +46,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [dateFilter, setDateFilter] = useState<string>('');
   const [toast, setToast] = useState<string | null>(null);
 
-  const refreshData = () => {
+  const refreshData = async () => {
+    // 1. Immediately read local
     const list = getBookings();
     setBookings(list);
     setStats(getDashboardStats());
     setSysMode(getSystemPaymentMode());
+
+    // 2. Fetch all bookings from backend server API
+    try {
+      const serverList = await fetchBookingsFromServer();
+      setBookings(serverList);
+      setStats(getDashboardStats());
+    } catch (e) {
+      // ignore
+    }
   };
 
   useEffect(() => {

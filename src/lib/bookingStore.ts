@@ -76,8 +76,7 @@ export function generateBookingId(type: BookingType): string {
 export function getBookings(): BookingRecord[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const list: BookingRecord[] = JSON.parse(raw);
+    const list: BookingRecord[] = raw ? JSON.parse(raw) : [];
     return list
       .map((b) => ({
         ...b,
@@ -92,6 +91,37 @@ export function getBookings(): BookingRecord[] {
     console.error('Failed to load bookings from storage', e);
     return [];
   }
+}
+
+export async function fetchBookingsFromServer(): Promise<BookingRecord[]> {
+  try {
+    const res = await fetch('/api/bookings');
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        const serverList: BookingRecord[] = json.data;
+        const localList = getBookings();
+        
+        // Merge server and local bookings without duplicates
+        const map = new Map<string, BookingRecord>();
+        serverList.forEach((b) => map.set(b.booking_id || b.id, b));
+        localList.forEach((b) => {
+          const key = b.booking_id || b.id;
+          if (!map.has(key)) map.set(key, b);
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        saveBookings(merged);
+        return merged;
+      }
+    }
+  } catch (e) {
+    // server API might be unavailable in static deploy, fallback silently to local
+  }
+  return getBookings();
 }
 
 export function saveBookings(bookings: BookingRecord[]): void {
@@ -324,6 +354,17 @@ export async function createBooking(
     }
   }
 
+  // Sync to Central Server Backend API
+  try {
+    fetch('/api/bookings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newBooking),
+    }).catch((e) => console.warn('Server API booking dispatch notice:', e));
+  } catch (e) {
+    // ignore
+  }
+
   return newBooking;
 }
 
@@ -389,6 +430,24 @@ export function updateBookingStatus(
   b.payment_verified_at = new Date().toISOString();
 
   saveBookings(bookings);
+
+  // Sync update to Central Server Backend API
+  try {
+    fetch('/api/bookings/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: b.id,
+        booking_id: b.booking_id,
+        payment_status: paymentStatus,
+        booking_status: bookingStatus,
+        paid_amount: b.paid_amount,
+        payment_verified_at: b.payment_verified_at,
+      }),
+    }).catch((e) => console.warn('Server API booking update notice:', e));
+  } catch (e) {
+    // ignore
+  }
 
   // Sync updated status to Google Sheets webhook
   const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
@@ -481,6 +540,14 @@ export function deleteBooking(id: string): boolean {
     const filtered = bookings.filter((b) => b.id !== id && b.booking_id !== id);
     if (filtered.length === bookings.length) return false;
     saveBookings(filtered);
+
+    // Sync deletion to Central Server Backend API
+    fetch('/api/bookings/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch((e) => console.warn('Server API delete notice:', e));
+
     return true;
   } catch (e) {
     console.error('Failed to delete booking', e);
@@ -491,6 +558,14 @@ export function deleteBooking(id: string): boolean {
 export function clearAllBookings(): boolean {
   try {
     saveBookings([]);
+
+    // Sync clear to Central Server Backend API
+    fetch('/api/bookings/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).catch((e) => console.warn('Server API clear notice:', e));
+
     return true;
   } catch (e) {
     console.error('Failed to clear bookings', e);

@@ -1,8 +1,15 @@
-﻿import {
+import {
   createRazorpayOrder,
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from './paymentHandler.js';
+import {
+  getAllBookings,
+  addBooking,
+  updateBooking,
+  deleteBookingById,
+  clearBookingsDb,
+} from './bookingStorage.js';
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -30,7 +37,7 @@ function sendJson(res, statusCode, data) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-razorpay-signature');
   res.end(JSON.stringify(data));
 }
@@ -41,13 +48,82 @@ export function paymentApiMiddleware(env = process.env) {
     if (req.method === 'OPTIONS') {
       res.statusCode = 204;
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-razorpay-signature');
       res.end();
       return;
     }
 
     const url = req.url ? req.url.split('?')[0] : '';
+
+    // Route: GET /api/bookings - Fetch ALL customer bookings across all emails
+    if (url === '/api/bookings' && req.method === 'GET') {
+      try {
+        const bookings = getAllBookings();
+        sendJson(res, 200, { success: true, count: bookings.length, data: bookings });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message, data: [] });
+      }
+      return;
+    }
+
+    // Route: POST /api/bookings - Create and save new customer booking
+    if (url === '/api/bookings' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || (!parsed.booking_id && !parsed.full_name)) {
+          sendJson(res, 400, { success: false, error: 'Invalid booking payload' });
+          return;
+        }
+        const saved = addBooking(parsed);
+        sendJson(res, 201, { success: true, data: saved });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/bookings/update - Update status of a booking
+    if (url === '/api/bookings/update' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        const { id, booking_id, ...updates } = parsed;
+        const targetId = id || booking_id;
+        const updated = updateBooking(targetId, updates);
+        if (!updated) {
+          sendJson(res, 404, { success: false, error: 'Booking not found' });
+          return;
+        }
+        sendJson(res, 200, { success: true, data: updated });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/bookings/delete - Delete a booking
+    if (url === '/api/bookings/delete' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        const targetId = parsed.id || parsed.booking_id;
+        const deleted = deleteBookingById(targetId);
+        sendJson(res, 200, { success: deleted });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/bookings/clear - Clear all bookings
+    if (url === '/api/bookings/clear' && req.method === 'POST') {
+      try {
+        clearBookingsDb();
+        sendJson(res, 200, { success: true, message: 'All bookings cleared' });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
 
     // Route: POST /api/payments/create-order
     if (url === '/api/payments/create-order' && req.method === 'POST') {
