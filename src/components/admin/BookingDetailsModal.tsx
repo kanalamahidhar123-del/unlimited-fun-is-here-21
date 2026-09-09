@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Sparkles,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import type { BookingRecord } from '@/lib/bookingStore';
 
@@ -20,6 +21,7 @@ interface ModalProps {
   onClose: () => void;
   onConfirm: (id: string) => void;
   onReject: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 export default function BookingDetailsModal({
@@ -27,6 +29,7 @@ export default function BookingDetailsModal({
   onClose,
   onConfirm,
   onReject,
+  onDelete,
 }: ModalProps) {
   const isRegistration = booking.payment_method === 'Registration Only' || booking.payment_status === 'Not Required';
   const isUnderpaid = !isRegistration && booking.paid_amount < booking.booking_amount;
@@ -244,12 +247,27 @@ export default function BookingDetailsModal({
 
         {/* Footer Actions */}
         <div className="px-6 py-4 border-t border-ink-800 bg-ink-950 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
-            onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-ink-800 text-ink-300 hover:text-white text-xs font-semibold"
-          >
-            Close
-          </button>
+          <div className="w-full sm:w-auto flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 rounded-full bg-ink-800 text-ink-300 hover:text-white text-xs font-semibold"
+            >
+              Close
+            </button>
+            <button
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete the booking for "${booking.full_name}" (${booking.booking_id})?`)) {
+                  onDelete(booking.id);
+                  onClose();
+                }
+              }}
+              title="Delete this booking permanently"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-flame-500/10 hover:bg-flame-500/20 text-flame-400 border border-flame-500/30 text-xs font-bold transition-all"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete Record</span>
+            </button>
+          </div>
 
           <div className="w-full sm:w-auto flex items-center gap-3">
             <button
@@ -259,7 +277,7 @@ export default function BookingDetailsModal({
               }}
               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-flame-500/10 border border-flame-500/40 text-flame-400 hover:bg-flame-500 hover:text-white text-xs font-bold transition-all active:scale-95"
             >
-              <XCircle className="h-4 w-4" /> REJECT PAYMENT
+              <XCircle className="h-4 w-4" /> REJECT
             </button>
             <button
               onClick={() => {
@@ -268,7 +286,7 @@ export default function BookingDetailsModal({
               }}
               className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-emerald-500 text-ink-950 hover:bg-emerald-400 text-xs font-black transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
             >
-              <CheckCircle2 className="h-4 w-4" /> CONFIRM PAYMENT
+              <CheckCircle2 className="h-4 w-4" /> CONFIRM
             </button>
           </div>
         </div>

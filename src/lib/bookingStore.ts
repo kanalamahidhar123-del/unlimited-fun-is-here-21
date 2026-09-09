@@ -153,53 +153,152 @@ export async function createBooking(
   };
 
   const existing = getBookings();
-  existing.unshift(newBooking);
-  saveBookings(existing);
+  // Ensure no duplicate with same booking_id
+  const filtered = existing.filter((b) => b.booking_id !== newBooking.booking_id && b.id !== newBooking.id);
+  filtered.unshift(newBooking);
+  saveBookings(filtered);
 
-  // Sync to Google Sheet Webhook with required columns
+  // Sync to Google Sheet Webhook with all required columns and alias mappings
   const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
   if (sheetUrl) {
     try {
       const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      const guestTotal = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
+      const packageDesc = `${newBooking.category}${newBooking.duration && newBooking.duration !== 'N/A' ? ` (${newBooking.duration})` : ''}`;
+      const regStatus = newBooking.booking_status || 'Registration Received';
+      const payStatus = newBooking.payment_status || 'Not Required';
+      const notes = newBooking.special_request || '';
+
+      const payload: Record<string, any> = {
+        // 1. Timestamp
+        timestamp: nowStr,
+        Timestamp: nowStr,
+        created_at: newBooking.created_at,
+
+        // 2. Booking ID
+        booking_id: newBooking.booking_id,
+        bookingId: newBooking.booking_id,
+        "Booking ID": newBooking.booking_id,
+        "Booking Id": newBooking.booking_id,
+        id: newBooking.booking_id,
+
+        // 3. Full Name
+        name: newBooking.full_name,
+        fullName: newBooking.full_name,
+        full_name: newBooking.full_name,
+        customerName: newBooking.full_name,
+        customer_name: newBooking.full_name,
+        "Full Name": newBooking.full_name,
+        "Customer Name": newBooking.full_name,
+        "Name": newBooking.full_name,
+
+        // 4. Phone Number / Mobile
+        phone: newBooking.mobile_number,
+        phoneNumber: newBooking.mobile_number,
+        phone_number: newBooking.mobile_number,
+        mobile: newBooking.mobile_number,
+        mobileNumber: newBooking.mobile_number,
+        mobile_number: newBooking.mobile_number,
+        "Phone Number": newBooking.mobile_number,
+        "Mobile Number": newBooking.mobile_number,
+        "Phone": newBooking.mobile_number,
+        "Mobile": newBooking.mobile_number,
+        whatsapp_number: newBooking.whatsapp_number || newBooking.mobile_number,
+        whatsapp: newBooking.whatsapp_number || newBooking.mobile_number,
+        "WhatsApp Number": newBooking.whatsapp_number || newBooking.mobile_number,
+
+        // 5. Email
+        email: newBooking.email || '',
+        Email: newBooking.email || '',
+        "Email Address": newBooking.email || '',
+
+        // 6. Booking Type
+        booking_type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
+        bookingType: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
+        type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
+        "Booking Type": newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
+        category: newBooking.category,
+        "Category": newBooking.category,
+
+        // 7. Booking Date
+        booking_date: newBooking.visit_date,
+        bookingDate: newBooking.visit_date,
+        visit_date: newBooking.visit_date,
+        visitDate: newBooking.visit_date,
+        date: newBooking.visit_date,
+        "Booking Date": newBooking.visit_date,
+        "Visit Date": newBooking.visit_date,
+        "Date": newBooking.visit_date,
+
+        // 8. Booking Time
+        booking_time: newBooking.preferred_time,
+        bookingTime: newBooking.preferred_time,
+        preferred_time: newBooking.preferred_time,
+        preferredTime: newBooking.preferred_time,
+        time: newBooking.preferred_time,
+        "Booking Time": newBooking.preferred_time,
+        "Preferred Time": newBooking.preferred_time,
+        "Time": newBooking.preferred_time,
+
+        // 9. Number of Guests
+        guests: guestTotal,
+        number_of_guests: guestTotal,
+        numberOfGuests: guestTotal,
+        "Number of Guests": guestTotal,
+        "Guests": `${guestTotal} Guests`,
+        adults: newBooking.adults ?? 1,
+        Adults: newBooking.adults ?? 1,
+        children: newBooking.children ?? 0,
+        Children: newBooking.children ?? 0,
+
+        // 10. Selected Duration / Package
+        package: packageDesc,
+        Package: packageDesc,
+        duration: newBooking.duration,
+        Duration: newBooking.duration,
+        "Selected Duration / Package": packageDesc,
+        "Package / Duration": packageDesc,
+        rfid_card: newBooking.rfid_card_type || 'None',
+        "RFID Card": newBooking.rfid_card_type || 'None',
+
+        // 11. Payment Status
+        payment_status: payStatus,
+        paymentStatus: payStatus,
+        "Payment Status": payStatus,
+        payment_method: newBooking.payment_method || 'Registration Only',
+        "Payment Method": newBooking.payment_method || 'Registration Only',
+        paid_amount: newBooking.paid_amount || 0,
+        "Paid Amount": newBooking.paid_amount || 0,
+        booking_amount: newBooking.booking_amount || 0,
+        "Booking Amount": newBooking.booking_amount || 0,
+
+        // 12. Registration Status
+        registration_status: regStatus,
+        registrationStatus: regStatus,
+        "Registration Status": regStatus,
+        booking_status: regStatus,
+        bookingStatus: regStatus,
+        "Booking Status": regStatus,
+
+        // 13. Additional Notes
+        notes: notes,
+        additional_notes: notes,
+        additionalNotes: notes,
+        special_request: notes,
+        specialRequest: notes,
+        "Additional Notes": notes,
+        "Special Request": notes,
+        "Notes": notes,
+      };
+
       await fetch(sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          // Columns required by user:
-          timestamp: nowStr,
-          Timestamp: nowStr,
-          full_name: newBooking.full_name,
-          "Full Name": newBooking.full_name,
-          mobile_number: newBooking.mobile_number,
-          "Mobile Number": newBooking.mobile_number,
-          whatsapp_number: newBooking.whatsapp_number || newBooking.mobile_number,
-          "WhatsApp Number": newBooking.whatsapp_number || newBooking.mobile_number,
-          email: newBooking.email || '',
-          Email: newBooking.email || '',
-          visit_date: newBooking.visit_date,
-          "Visit Date": newBooking.visit_date,
-          time: newBooking.preferred_time,
-          Time: newBooking.preferred_time,
-          adults: newBooking.adults || 0,
-          Adults: newBooking.adults || 0,
-          children: newBooking.children || 0,
-          Children: newBooking.children || 0,
-          package: `${newBooking.category} (${newBooking.duration})`,
-          Package: `${newBooking.category} (${newBooking.duration})`,
-          rfid_card: newBooking.rfid_card_type || 'None',
-          "RFID Card": newBooking.rfid_card_type || 'None',
-          booking_status: 'Pending Payment',
-          "Booking Status": 'Pending Payment',
-          special_request: newBooking.special_request || '',
-          "Special Request": newBooking.special_request || '',
-          booking_id: newBooking.booking_id,
-          type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
-          guests: `${(newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity} Guests`,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (err) {
-      console.warn('Google Sheet webhook sync notice:', err);
+      console.error('Google Sheet webhook sync error:', err);
     }
   }
 
@@ -214,10 +313,10 @@ export async function createBooking(
         email: newBooking.email,
         visit_date: newBooking.visit_date,
         preferred_time: newBooking.preferred_time,
-        number_of_people: newBooking.quantity,
+        number_of_people: (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity,
         category: newBooking.category,
         duration: newBooking.duration,
-        special_request: `[${newBooking.booking_id}] Method: ${newBooking.payment_method} | Rzp ID: ${newBooking.razorpay_payment_id || 'N/A'} | Booking Amount: ₹${newBooking.booking_amount} | Paid Amount: ₹${newBooking.paid_amount} | Status: ${newBooking.payment_status} | ${newBooking.special_request || ''}`,
+        special_request: `[${newBooking.booking_id}] Method: ${newBooking.payment_method} | Status: ${newBooking.booking_status} | ${newBooking.special_request || ''}`,
         agreed_to_terms: true,
       });
     } catch (syncErr) {
@@ -226,6 +325,50 @@ export async function createBooking(
   }
 
   return newBooking;
+}
+
+export function getBookingStatusBadge(booking: BookingRecord): {
+  label: string;
+  badgeClass: string;
+  icon: string;
+} {
+  if (booking.booking_status === 'Confirmed' || booking.payment_status === 'Successful') {
+    return {
+      label: 'Confirmed / Successful',
+      badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+      icon: '🟢',
+    };
+  }
+  if (booking.booking_status === 'Cancelled' || booking.payment_status === 'Failed') {
+    return {
+      label: 'Cancelled / Rejected',
+      badgeClass: 'bg-flame-500/10 text-flame-400 border-flame-500/30',
+      icon: '🔴',
+    };
+  }
+  if (
+    booking.payment_method === 'Registration Only' ||
+    booking.payment_status === 'Not Required' ||
+    booking.booking_status === 'Registration Received'
+  ) {
+    return {
+      label: booking.booking_status || 'Registration Received',
+      badgeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
+      icon: '📝',
+    };
+  }
+  if (booking.payment_status === 'Pending Verification') {
+    return {
+      label: 'Pending Verification',
+      badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+      icon: '🟡',
+    };
+  }
+  return {
+    label: booking.booking_status || 'Pending Payment',
+    badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    icon: '🟡',
+  };
 }
 
 export function updateBookingStatus(
@@ -237,10 +380,66 @@ export function updateBookingStatus(
   const index = bookings.findIndex((b) => b.id === id || b.booking_id === id);
   if (index === -1) return false;
 
-  // Preserve the exact recorded paid_amount - do NOT overwrite it!
-  bookings[index].payment_status = paymentStatus;
-  bookings[index].booking_status = bookingStatus;
+  const b = bookings[index];
+  b.payment_status = paymentStatus;
+  b.booking_status = bookingStatus;
+  if (paymentStatus === 'Successful' && (!b.paid_amount || b.paid_amount === 0) && b.booking_amount > 0) {
+    b.paid_amount = b.booking_amount;
+  }
+  b.payment_verified_at = new Date().toISOString();
+
   saveBookings(bookings);
+
+  // Sync updated status to Google Sheets webhook
+  const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
+  if (sheetUrl) {
+    try {
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      fetch(sheetUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'status_update',
+          timestamp: nowStr,
+          Timestamp: nowStr,
+          booking_id: b.booking_id,
+          bookingId: b.booking_id,
+          "Booking ID": b.booking_id,
+          name: b.full_name,
+          fullName: b.full_name,
+          "Full Name": b.full_name,
+          mobile_number: b.mobile_number,
+          "Mobile Number": b.mobile_number,
+          payment_status: paymentStatus,
+          paymentStatus: paymentStatus,
+          "Payment Status": paymentStatus,
+          booking_status: bookingStatus,
+          bookingStatus: bookingStatus,
+          "Booking Status": bookingStatus,
+          registration_status: bookingStatus,
+          "Registration Status": bookingStatus,
+        }),
+      }).catch((err) => console.warn('Google Sheet status update notice:', err));
+    } catch (e) {
+      console.warn('Google Sheet dispatch notice:', e);
+    }
+  }
+
+  // Sync to Supabase if configured
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const isConfigured = supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co');
+  if (isConfigured) {
+    supabase
+      .from('bookings')
+      .update({
+        special_request: `[${b.booking_id}] Status: ${bookingStatus} | Payment: ${paymentStatus} | Verified at: ${b.payment_verified_at}`,
+      })
+      .ilike('special_request', `%${b.booking_id}%`)
+      .then()
+      .catch((e) => console.warn('Supabase status update notice:', e));
+  }
+
   return true;
 }
 
@@ -274,4 +473,27 @@ export function getDashboardStats() {
     totalRevenue,
     totalRfidBookings,
   };
+}
+
+export function deleteBooking(id: string): boolean {
+  try {
+    const bookings = getBookings();
+    const filtered = bookings.filter((b) => b.id !== id && b.booking_id !== id);
+    if (filtered.length === bookings.length) return false;
+    saveBookings(filtered);
+    return true;
+  } catch (e) {
+    console.error('Failed to delete booking', e);
+    return false;
+  }
+}
+
+export function clearAllBookings(): boolean {
+  try {
+    saveBookings([]);
+    return true;
+  } catch (e) {
+    console.error('Failed to clear bookings', e);
+    return false;
+  }
 }

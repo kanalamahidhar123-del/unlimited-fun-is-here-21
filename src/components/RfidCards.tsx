@@ -12,7 +12,11 @@ import {
   Send,
 } from 'lucide-react';
 import { SITE } from '@/data/site';
-import { createBooking, type BookingRecord } from '@/lib/bookingStore';
+import {
+  createBooking,
+  getBookingStatusBadge,
+  type BookingRecord,
+} from '@/lib/bookingStore';
 
 export type RfidCardType = 'Basic' | 'Premium';
 
@@ -368,9 +372,14 @@ export default function RfidCards() {
                   </div>
                   <div>
                     <span className="text-xs text-ink-400 block">Status</span>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 mt-0.5">
-                      🟡 Pending Payment
-                    </span>
+                    {(() => {
+                      const badge = getBookingStatusBadge(confirmedBooking);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border mt-0.5 ${badge.badgeClass}`}>
+                          <span>{badge.icon}</span> {badge.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

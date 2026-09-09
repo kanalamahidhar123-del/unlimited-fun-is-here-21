@@ -11,7 +11,12 @@ import {
   Send,
 } from 'lucide-react';
 import { SITE } from '@/data/site';
-import { createBooking, getBookings, type BookingRecord } from '@/lib/bookingStore';
+import {
+  createBooking,
+  getBookings,
+  getBookingStatusBadge,
+  type BookingRecord,
+} from '@/lib/bookingStore';
 
 interface FormState {
   full_name: string;
@@ -276,9 +281,14 @@ export default function Booking() {
                 )}
                 <div>
                   <span className="text-xs text-ink-400 block">Status</span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 mt-0.5">
-                    🟡 Pending Payment
-                  </span>
+                  {(() => {
+                    const badge = getBookingStatusBadge(liveConfirmedBooking);
+                    return (
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border mt-0.5 ${badge.badgeClass}`}>
+                        <span>{badge.icon}</span> {badge.label}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -404,12 +414,17 @@ export default function Booking() {
                       key={b.id}
                       className="p-5 rounded-2xl bg-ink-950/80 border border-ink-800 space-y-3"
                     >
-                      <div className="flex justify-between items-center border-b border-ink-800 pb-2">
-                        <span className="font-mono text-sm font-bold text-volt-400">{b.booking_id}</span>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                          🟡 Pending Payment
-                        </span>
-                      </div>
+                      {(() => {
+                        const badge = getBookingStatusBadge(b);
+                        return (
+                          <div className="flex justify-between items-center border-b border-ink-800 pb-2">
+                            <span className="font-mono text-sm font-bold text-volt-400">{b.booking_id}</span>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${badge.badgeClass}`}>
+                              <span>{badge.icon}</span> {badge.label}
+                            </span>
+                          </div>
+                        );
+                      })()}
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className="text-ink-400 block">Name:</span>
@@ -425,8 +440,14 @@ export default function Booking() {
                         </div>
                         <div>
                           <span className="text-ink-400 block">Package:</span>
-                          <span className="text-white font-semibold">{b.category} ({b.duration})</span>
+                          <span className="text-white font-semibold">{b.category} {b.duration !== 'N/A' && `(${b.duration})`}</span>
                         </div>
+                        {b.special_request && (
+                          <div className="col-span-2 text-ink-400">
+                            <span className="block text-ink-500">Note:</span>
+                            <span className="text-ink-300">{b.special_request}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

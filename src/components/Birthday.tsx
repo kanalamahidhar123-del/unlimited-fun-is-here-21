@@ -65,26 +65,61 @@ export default function Birthday() {
       const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
       if (sheetUrl) {
         try {
+          const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
           await fetch(sheetUrl, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
-              type: 'Birthday Enquiry',
+              timestamp: nowStr,
+              Timestamp: nowStr,
               name: newEnquiry.name,
+              fullName: newEnquiry.name,
+              full_name: newEnquiry.name,
+              "Full Name": newEnquiry.name,
+              "Customer Name": newEnquiry.name,
               phone: newEnquiry.phone,
+              phoneNumber: newEnquiry.phone,
+              phone_number: newEnquiry.phone,
+              mobile: newEnquiry.phone,
+              mobile_number: newEnquiry.phone,
+              "Phone Number": newEnquiry.phone,
+              "Mobile Number": newEnquiry.phone,
               email: newEnquiry.email || '',
+              Email: newEnquiry.email || '',
+              "Email Address": newEnquiry.email || '',
+              booking_date: newEnquiry.preferred_date || '',
               visit_date: newEnquiry.preferred_date || '',
-              time: '',
-              guests: newEnquiry.number_of_guests || '',
+              "Booking Date": newEnquiry.preferred_date || '',
+              "Visit Date": newEnquiry.preferred_date || '',
+              time: 'Flexible',
+              booking_time: 'Flexible',
+              "Booking Time": 'Flexible',
+              guests: newEnquiry.number_of_guests || 1,
+              number_of_guests: newEnquiry.number_of_guests || 1,
+              "Number of Guests": newEnquiry.number_of_guests || 1,
               category: 'Birthday Party',
-              duration: '',
+              package: 'Birthday Party Package',
+              Package: 'Birthday Party Package',
+              "Selected Duration / Package": 'Birthday Party Package',
+              booking_type: 'Birthday Party',
+              type: 'Birthday Party',
+              "Booking Type": 'Birthday Party',
+              payment_status: 'Not Required',
+              "Payment Status": 'Not Required',
+              booking_status: 'Enquiry Received',
+              "Booking Status": 'Enquiry Received',
+              registration_status: 'Enquiry Received',
+              "Registration Status": 'Enquiry Received',
               special_request: newEnquiry.message || '',
-              submitted_at: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+              additional_notes: newEnquiry.message || '',
+              "Additional Notes": newEnquiry.message || '',
+              "Special Request": newEnquiry.message || '',
+              notes: newEnquiry.message || '',
             }),
           });
         } catch (sheetErr) {
-          console.warn('Google Sheets sync skipped/failed:', sheetErr);
+          console.error('Google Sheets sync notice:', sheetErr);
         }
       }
 

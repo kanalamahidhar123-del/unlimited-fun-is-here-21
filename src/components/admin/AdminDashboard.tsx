@@ -12,10 +12,13 @@ import {
   Eye,
   RefreshCw,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import {
   getBookings,
   updateBookingStatus,
+  deleteBooking,
+  clearAllBookings,
   getDashboardStats,
   getSystemPaymentMode,
   setSystemPaymentMode,
@@ -87,6 +90,38 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
   };
 
+  const handleDeleteBooking = (id: string, name?: string) => {
+    const confirmMsg = name
+      ? `Are you sure you want to delete the booking for "${name}"? This action cannot be undone.`
+      : 'Are you sure you want to delete this booking? This action cannot be undone.';
+    if (window.confirm(confirmMsg)) {
+      const success = deleteBooking(id);
+      if (success) {
+        if (selectedBooking && (selectedBooking.id === id || selectedBooking.booking_id === id)) {
+          setSelectedBooking(null);
+        }
+        refreshData();
+        showToast('Booking deleted successfully.');
+      }
+    }
+  };
+
+  const handleClearAllBookings = () => {
+    if (bookings.length === 0) {
+      showToast('No booking records to clear.');
+      return;
+    }
+    const confirmed = window.confirm(
+      `⚠️ WARNING: Are you sure you want to permanently delete ALL ${bookings.length} customer booking records? This will clear all details from the Admin Dashboard.`
+    );
+    if (confirmed) {
+      clearAllBookings();
+      setSelectedBooking(null);
+      refreshData();
+      showToast('All customer booking records have been cleared.');
+    }
+  };
+
   // Filtered Bookings logic
   const filteredBookings = bookings.filter((b) => {
     if (tab === 'rfid' && b.type !== 'RFID') return false;
@@ -94,11 +129,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     // Search query
     const q = search.trim().toLowerCase();
     if (q) {
-      const matchName = b.full_name.toLowerCase().includes(q);
-      const matchPhone = b.mobile_number.includes(q);
-      const matchId = b.booking_id.toLowerCase().includes(q);
-      const matchUtr = b.utr.toLowerCase().includes(q);
-      if (!matchName && !matchPhone && !matchId && !matchUtr) return false;
+      const matchName = b.full_name?.toLowerCase().includes(q);
+      const matchPhone = b.mobile_number?.includes(q);
+      const matchWhatsapp = b.whatsapp_number?.includes(q);
+      const matchEmail = b.email?.toLowerCase().includes(q);
+      const matchId = b.booking_id?.toLowerCase().includes(q);
+      const matchCategory = b.category?.toLowerCase().includes(q);
+      const matchUtr = b.utr?.toLowerCase().includes(q);
+      const matchNotes = b.special_request?.toLowerCase().includes(q);
+      if (!matchName && !matchPhone && !matchWhatsapp && !matchEmail && !matchId && !matchCategory && !matchUtr && !matchNotes) return false;
     }
 
     // Payment Filter
@@ -161,9 +200,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <button
             onClick={refreshData}
             title="Refresh Data"
-            className="p-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-ink-300 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-ink-800 hover:bg-ink-700 text-ink-300 hover:text-white text-xs font-bold transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <button
+            onClick={handleClearAllBookings}
+            title="Clear all booking records"
+            className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl bg-flame-500/10 hover:bg-flame-500/20 text-flame-400 border border-flame-500/30 text-xs font-bold transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Clear All</span>
           </button>
           <button
             onClick={onLogout}
@@ -328,8 +376,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {bookings.slice(0, 5).map((b) => {
-                    const isUnderpaid = b.paid_amount < b.booking_amount;
+                  {bookings.slice(0, 8).map((b) => {
+                    const isRegistration = b.payment_method === 'Registration Only' || b.payment_status === 'Not Required';
+                    const isUnderpaid = !isRegistration && b.paid_amount < b.booking_amount;
                     return (
                       <div
                         key={b.id}
@@ -342,13 +391,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             </span>
                             <span className="text-xs font-bold text-white">{b.full_name}</span>
                             <span className="text-xs text-ink-400">({b.mobile_number})</span>
+                            {b.email && (
+                              <span className="text-xs text-ink-500 hidden md:inline">· {b.email}</span>
+                            )}
                           </div>
                           <div className="text-xs text-ink-400">
                             {b.category} {b.duration !== 'N/A' && `(${b.duration})`} · {b.quantity} {b.type === 'RFID' ? 'Cards' : 'Guests'} · {b.visit_date} at {b.preferred_time}
                           </div>
-                          <div className="text-[11px] font-mono text-ink-500">
-                            UTR: <span className="text-ink-300">{b.utr}</span>
-                          </div>
+                          {b.special_request && (
+                            <div className="text-[11px] text-ink-400 italic">
+                              Note: {b.special_request}
+                            </div>
+                          )}
+                          {!isRegistration && b.utr && b.utr !== 'N/A' && (
+                            <div className="text-[11px] font-mono text-ink-500">
+                              UTR: <span className="text-ink-300">{b.utr}</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Amount Comparison */}
@@ -357,8 +416,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             <div className="text-[10px] text-ink-500">
                               Booking: ₹{b.booking_amount.toLocaleString('en-IN')}
                             </div>
-                            <div className="font-display font-black text-lg text-volt-400 flex items-center justify-end gap-1">
-                              <span>Paid: ₹{b.paid_amount.toLocaleString('en-IN')}</span>
+                            <div className={`font-display font-black text-lg ${isRegistration ? 'text-ink-400' : 'text-volt-400'} flex items-center justify-end gap-1`}>
+                              <span>{isRegistration ? 'Registration Only' : `Paid: ₹${b.paid_amount.toLocaleString('en-IN')}`}</span>
                               {isUnderpaid && (
                                 <span title="Underpaid" className="text-xs text-amber-400">⚠️</span>
                               )}
@@ -369,12 +428,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                               b.payment_status === 'Successful'
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                : b.payment_status === 'Not Required'
+                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                                 : b.payment_status === 'Failed'
                                 ? 'bg-flame-500/10 text-flame-400 border border-flame-500/30'
                                 : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                             }`}
                           >
                             {b.payment_status === 'Successful' && '🟢 Successful'}
+                            {b.payment_status === 'Not Required' && '📝 Registered'}
                             {b.payment_status === 'Failed' && '🔴 Failed'}
                             {b.payment_status === 'Pending Verification' && '🟡 Pending'}
                           </span>
@@ -384,6 +446,32 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             className="px-3 py-1.5 rounded-lg bg-ink-800 hover:bg-ink-700 text-xs font-semibold text-ink-200 hover:text-white"
                           >
                             Details
+                          </button>
+
+                          {b.booking_status !== 'Confirmed' && (
+                            <button
+                              onClick={() => handleConfirmPayment(b.id)}
+                              title="Verify & Confirm Booking"
+                              className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-ink-950 text-emerald-400 border border-emerald-500/30 transition-all"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </button>
+                          )}
+                          {b.booking_status !== 'Cancelled' && (
+                            <button
+                              onClick={() => handleRejectPayment(b.id)}
+                              title="Cancel / Reject Booking"
+                              className="p-1.5 rounded-lg bg-flame-500/10 hover:bg-flame-500 hover:text-white text-flame-400 border border-flame-500/30 transition-all"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeleteBooking(b.id, b.full_name)}
+                            title="Delete this booking"
+                            className="p-1.5 rounded-lg bg-ink-800 hover:bg-flame-500/20 text-ink-400 hover:text-flame-400 border border-ink-700 transition-all"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
@@ -615,24 +703,31 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   <Eye className="h-4 w-4" />
                                 </button>
 
-                                {b.payment_status === 'Pending Verification' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleConfirmPayment(b.id)}
-                                      title="Confirm Payment"
-                                      className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-ink-950 text-emerald-400 border border-emerald-500/30 transition-all"
-                                    >
-                                      <CheckCircle2 className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleRejectPayment(b.id)}
-                                      title="Reject Payment"
-                                      className="p-1.5 rounded-lg bg-flame-500/10 hover:bg-flame-500 hover:text-white text-flame-400 border border-flame-500/30 transition-all"
-                                    >
-                                      <XCircle className="h-4 w-4" />
-                                    </button>
-                                  </>
+                                {b.booking_status !== 'Confirmed' && (
+                                  <button
+                                    onClick={() => handleConfirmPayment(b.id)}
+                                    title="Verify & Confirm Booking"
+                                    className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-ink-950 text-emerald-400 border border-emerald-500/30 transition-all"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  </button>
                                 )}
+                                {b.booking_status !== 'Cancelled' && (
+                                  <button
+                                    onClick={() => handleRejectPayment(b.id)}
+                                    title="Cancel / Reject Booking"
+                                    className="p-1.5 rounded-lg bg-flame-500/10 hover:bg-flame-500 hover:text-white text-flame-400 border border-flame-500/30 transition-all"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteBooking(b.id, b.full_name)}
+                                  title="Delete this booking permanently"
+                                  className="p-1.5 rounded-lg bg-ink-800 hover:bg-flame-500/20 text-ink-400 hover:text-flame-400 border border-ink-700 transition-all"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -654,6 +749,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           onClose={() => setSelectedBooking(null)}
           onConfirm={handleConfirmPayment}
           onReject={handleRejectPayment}
+          onDelete={handleDeleteBooking}
         />
       )}
     </div>
