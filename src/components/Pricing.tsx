@@ -1,4 +1,4 @@
-﻿import { Calendar, CreditCard, AlertTriangle } from 'lucide-react';
+import { Calendar, CreditCard, AlertTriangle } from 'lucide-react';
 import { SITE } from '@/data/site';
 
 interface PriceTier {
@@ -34,9 +34,19 @@ const rfidCards = [
   },
 ];
 
-export default function Pricing() {
+interface PricingProps {
+  onBookClick?: () => void;
+}
+
+export default function Pricing({ onBookClick }: PricingProps) {
   const scrollTo = (href: string) => {
-    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+    if (onBookClick && (href === '#booking' || href === '#rfid-cards')) {
+      onBookClick();
+    } else {
+      window.location.hash = href.replace(/^#/, '');
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const renderCard = (tier: PriceTier, categoryName: string, i: number) => (

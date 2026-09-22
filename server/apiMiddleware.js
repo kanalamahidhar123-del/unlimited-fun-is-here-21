@@ -9,7 +9,18 @@ import {
   updateBooking,
   deleteBookingById,
   clearBookingsDb,
+  isDateFull,
+  getDateBookingCount,
+  getNextAvailableDate,
+  getCapacitySummary,
+  DAILY_CAPACITY,
 } from './bookingStorage.js';
+import {
+  getAllAnnouncements,
+  addAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncementById,
+} from './announcementStorage.js';
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -55,6 +66,105 @@ export function paymentApiMiddleware(env = process.env) {
     }
 
     const url = req.url ? req.url.split('?')[0] : '';
+    const searchParams = req.url && req.url.includes('?') ? new URLSearchParams(req.url.split('?')[1]) : new URLSearchParams();
+
+    // Route: GET /api/capacity - Daily 50 booking capacity status & summary
+    if (url === '/api/capacity' && req.method === 'GET') {
+      try {
+        const dateQuery = searchParams.get('date');
+        if (dateQuery) {
+          const booked = getDateBookingCount(dateQuery);
+          const isFull = isDateFull(dateQuery);
+          sendJson(res, 200, {
+            success: true,
+            date: dateQuery,
+            capacity: DAILY_CAPACITY,
+            booked,
+            remaining: Math.max(0, DAILY_CAPACITY - booked),
+            isFull,
+            nextAvailableDate: isFull ? getNextAvailableDate(dateQuery) : null,
+          });
+          return;
+        }
+
+        const days = parseInt(searchParams.get('days')) || 30;
+        const summary = getCapacitySummary(days);
+        const nextAvailable = getNextAvailableDate();
+        sendJson(res, 200, {
+          success: true,
+          capacity: DAILY_CAPACITY,
+          summary,
+          nextAvailableDate: nextAvailable,
+        });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: GET /api/announcements - Customer & Admin Announcements
+    if (url === '/api/announcements' && req.method === 'GET') {
+      try {
+        const includeDrafts = searchParams.get('includeDrafts') === 'true';
+        const list = getAllAnnouncements(includeDrafts);
+        sendJson(res, 200, { success: true, count: list.length, data: list });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message, data: [] });
+      }
+      return;
+    }
+
+    // Route: POST /api/announcements - Create Announcement
+    if (url === '/api/announcements' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.title) {
+          sendJson(res, 400, { success: false, error: 'Title is required for announcement' });
+          return;
+        }
+        const created = addAnnouncement(parsed);
+        sendJson(res, 201, { success: true, data: created });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/announcements/update - Update Announcement
+    if (url === '/api/announcements/update' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.id) {
+          sendJson(res, 400, { success: false, error: 'ID is required to update announcement' });
+          return;
+        }
+        const updated = updateAnnouncement(parsed.id, parsed);
+        if (!updated) {
+          sendJson(res, 404, { success: false, error: 'Announcement not found' });
+          return;
+        }
+        sendJson(res, 200, { success: true, data: updated });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/announcements/delete - Delete Announcement
+    if (url === '/api/announcements/delete' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.id) {
+          sendJson(res, 400, { success: false, error: 'ID is required to delete announcement' });
+          return;
+        }
+        const deleted = deleteAnnouncementById(parsed.id);
+        sendJson(res, 200, { success: deleted });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
 
     // Route: GET /api/bookings - Fetch ALL customer bookings across all emails
     if (url === '/api/bookings' && req.method === 'GET') {
@@ -67,7 +177,7 @@ export function paymentApiMiddleware(env = process.env) {
       return;
     }
 
-    // Route: POST /api/bookings - Create and save new customer booking
+    // Route: POST /api/bookings - Create and save new customer booking (with 50 capacity check)
     if (url === '/api/bookings' && req.method === 'POST') {
       try {
         const { parsed } = await parseJsonBody(req);
@@ -75,6 +185,19 @@ export function paymentApiMiddleware(env = process.env) {
           sendJson(res, 400, { success: false, error: 'Invalid booking payload' });
           return;
         }
+
+        // Enforce 50 daily capacity check
+        if (parsed.visit_date && isDateFull(parsed.visit_date)) {
+          const nextDate = getNextAvailableDate(parsed.visit_date);
+          sendJson(res, 400, {
+            success: false,
+            error: 'DATE_FULL',
+            message: "Today's tickets are fully booked! Maximum daily capacity of 50 bookings has been reached.",
+            nextAvailableDate: nextDate,
+          });
+          return;
+        }
+
         const saved = addBooking(parsed);
         sendJson(res, 201, { success: true, data: saved });
       } catch (err) {

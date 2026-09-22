@@ -1,141 +1,167 @@
-import { useEffect, useState } from 'react';
-import { Calendar, MapPin, ChevronDown, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Calendar,
+  Gamepad2,
+  Tag,
+  Gift,
+  MapPin,
+  Clock,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react';
 import { SITE } from '@/data/site';
 
-function useCountdown(target: string) {
-  const [diff, setDiff] = useState<number>(() =>
-    Date.parse(target) - Date.now()
-  );
-  useEffect(() => {
-    const id = setInterval(() => {
-      setDiff(Date.parse(target) - Date.now());
-    }, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  return diff;
+interface HeroProps {
+  onNavigate?: (viewId: string) => void;
 }
 
-function pad(n: number) {
-  return String(Math.max(0, n)).padStart(2, '0');
-}
-
-export default function Hero() {
-  const targetISO = `${SITE.openingDate}T12:00:00+05:30`;
-  const diff = useCountdown(targetISO);
-  const isOpen = diff <= 0;
-
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-
-  const scrollTo = (href: string) => {
-    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+export default function Hero({ onNavigate }: HeroProps) {
+  const handleNav = (targetId: string) => {
+    if (onNavigate) {
+      onNavigate(targetId);
+    } else {
+      window.location.hash = targetId;
+      const el = document.getElementById(targetId);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
-    <section id="home" className="relative min-h-screen flex items-center overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0">
+    <section id="home" className="relative min-h-[92vh] flex items-center justify-center pt-24 pb-16 overflow-hidden">
+      {/* Real Arena Background Image */}
+      <div className="absolute inset-0 z-0">
         <img
           src="/trampoline-court.jpg"
-          alt="Vibrant indoor trampoline court arena at Unlimited Fun Bhimavaram"
-          className="h-full w-full object-cover object-center"
+          alt="Unlimited Fun Bhimavaram Arena"
+          className="h-full w-full object-cover object-center scale-105"
           loading="eager"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink-950/90 via-ink-950/60 to-ink-950/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/30" />
+        {/* Dark contrast gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-r from-ink-950/95 via-ink-950/85 to-ink-950/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-transparent to-ink-950/40" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-16 w-full">
+      {/* Main Hero Container */}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
         <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-volt-500/15 border border-volt-500/30 px-4 py-1.5 mb-6 animate-fade-in">
-            <Sparkles className="h-4 w-4 text-volt-500" />
-            <span className="text-sm font-semibold text-volt-400">
-              {isOpen ? 'NOW OPEN' : `OPENING ${new Date(SITE.openingDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long' }).toUpperCase()}`}
-            </span>
+          {/* Top Location & Open Status Pill */}
+          <div className="inline-flex items-center gap-2 rounded-full bg-volt-500/10 border border-volt-500/30 px-4 py-1.5 mb-6 text-xs sm:text-sm font-bold text-volt-400">
+            <span className="h-2 w-2 rounded-full bg-volt-500 animate-pulse" />
+            <span>NOW OPEN ALL 7 DAYS · 9:00 AM – 10:00 PM</span>
           </div>
 
-          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl leading-[1.05] text-white animate-fade-up">
-            UNLIMITED FUN
-            <br />
-            <span className="text-volt-500">IS HERE!</span>
+          {/* Main Headline */}
+          <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl leading-[1.05] text-white tracking-tight">
+            UNLIMITED <span className="text-volt-500">FUN</span>
           </h1>
 
-          <p className="mt-5 text-lg sm:text-xl text-ink-200 max-w-xl animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            Bhimavaram's ultimate indoor adventure &amp; fun zone.
+          {/* Tagline */}
+          <p className="mt-3 text-lg sm:text-2xl font-bold text-ink-100">
+            Bhimavaram's Indoor Adventure &amp; Fun Zone
           </p>
 
-          <div className="mt-4 flex items-center gap-2 text-ink-300 animate-fade-up" style={{ animationDelay: '0.15s' }}>
-            <MapPin className="h-5 w-5 text-volt-500" />
-            <span className="text-sm font-medium">{SITE.city}, {SITE.region}</span>
+          <p className="mt-3 text-sm sm:text-base text-ink-300 max-w-xl leading-relaxed">
+            Experience high-energy trampoline arenas, climbing walls, obstacle courses, sweeper games, and toddler discovery play zones.
+          </p>
+
+          {/* Key Quick Facts */}
+          <div className="mt-6 flex flex-wrap items-center gap-4 text-xs sm:text-sm text-ink-300">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 text-volt-500" />
+              <span>{SITE.city}, Andhra Pradesh</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="h-4 w-4 text-volt-500" />
+              <span>10+ Adventure Activities</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-volt-500" />
+              <span>Max 50 Slots Daily</span>
+            </div>
           </div>
 
-          {/* Countdown or Now Open */}
-          {!isOpen ? (
-            <div className="mt-8 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-              <p className="text-sm font-semibold text-ink-300 mb-3">
-                Opening at {SITE.openingTime} — Countdown:
-              </p>
-              <div className="flex gap-3 sm:gap-4">
-                {[
-                  { label: 'Days', value: days },
-                  { label: 'Hours', value: hours },
-                  { label: 'Mins', value: minutes },
-                  { label: 'Secs', value: seconds },
-                ].map((unit) => (
-                  <div
-                    key={unit.label}
-                    className="flex flex-col items-center rounded-xl bg-ink-900/80 backdrop-blur border border-ink-700 px-3 py-2.5 sm:px-5 sm:py-3 min-w-[64px] sm:min-w-[80px]"
-                  >
-                    <span className="font-display font-black text-2xl sm:text-3xl text-volt-500 tabular-nums">
-                      {pad(unit.value)}
-                    </span>
-                    <span className="text-[10px] sm:text-xs font-semibold text-ink-300 uppercase tracking-wide mt-1">
-                      {unit.label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="mt-8 animate-fade-up" style={{ animationDelay: '0.2s' }}>
-              <div className="inline-flex items-center gap-2 rounded-xl bg-volt-500/20 border border-volt-500/40 px-5 py-3">
-                <span className="font-display font-black text-xl text-volt-400">NOW OPEN</span>
-                <span className="text-ink-300 text-sm">· {SITE.hours}</span>
-              </div>
-            </div>
-          )}
-
-          {/* CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 animate-fade-up" style={{ animationDelay: '0.25s' }}>
+          {/* 4 COMMERCIAL ACTION HUB CARDS */}
+          <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {/* 1. Book Slot CTA (Primary) */}
             <button
-              onClick={() => scrollTo('#booking')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-volt-500 px-7 py-3.5 text-base font-bold text-ink-950 hover:bg-volt-400 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-volt-500/20"
+              onClick={() => handleNav('booking')}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-volt-500 hover:bg-volt-400 text-ink-950 font-black text-left transition-all duration-200 shadow-xl shadow-volt-500/20 active:scale-95"
             >
-              <Calendar className="h-5 w-5" />
-              BOOK YOUR SLOT
+              <div className="flex items-center justify-between mb-3">
+                <Calendar className="h-6 w-6 text-ink-950" />
+                <ArrowRight className="h-4 w-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-ink-900 font-bold opacity-80">
+                  Reserve Now
+                </span>
+                <span className="text-sm sm:text-base font-black leading-tight block mt-0.5">
+                  BOOK YOUR SLOT
+                </span>
+              </div>
             </button>
+
+            {/* 2. View Prices CTA */}
             <button
-              onClick={() => scrollTo('#games')}
-              className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-white/20 bg-white/5 backdrop-blur px-7 py-3.5 text-base font-bold text-white hover:bg-white/10 transition-all hover:scale-105 active:scale-95"
+              onClick={() => handleNav('pricing')}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-ink-900/90 hover:bg-ink-800 border border-ink-700 hover:border-volt-500/50 text-white font-bold text-left transition-all duration-200 active:scale-95 shadow-lg"
             >
-              EXPLORE GAMES
-              <ChevronDown className="h-5 w-5" />
+              <div className="flex items-center justify-between mb-3">
+                <Tag className="h-6 w-6 text-volt-400" />
+                <ArrowRight className="h-4 w-4 text-ink-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-ink-400 font-semibold">
+                  From ₹200
+                </span>
+                <span className="text-sm sm:text-base font-black text-white leading-tight block mt-0.5">
+                  VIEW PRICES
+                </span>
+              </div>
+            </button>
+
+            {/* 3. Explore Games CTA */}
+            <button
+              onClick={() => handleNav('games')}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-ink-900/90 hover:bg-ink-800 border border-ink-700 hover:border-volt-500/50 text-white font-bold text-left transition-all duration-200 active:scale-95 shadow-lg"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <Gamepad2 className="h-6 w-6 text-volt-400" />
+                <ArrowRight className="h-4 w-4 text-ink-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-ink-400 font-semibold">
+                  10+ Activities
+                </span>
+                <span className="text-sm sm:text-base font-black text-white leading-tight block mt-0.5">
+                  EXPLORE GAMES
+                </span>
+              </div>
+            </button>
+
+            {/* 4. View Offers CTA */}
+            <button
+              onClick={() => handleNav('offers')}
+              className="group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-ink-900/90 hover:bg-ink-800 border border-ink-700 hover:border-volt-500/50 text-white font-bold text-left transition-all duration-200 active:scale-95 shadow-lg"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <Gift className="h-6 w-6 text-volt-400" />
+                <ArrowRight className="h-4 w-4 text-ink-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wider text-ink-400 font-semibold">
+                  Special Deals
+                </span>
+                <span className="text-sm sm:text-base font-black text-white leading-tight block mt-0.5">
+                  VIEW OFFERS
+                </span>
+              </div>
             </button>
           </div>
         </div>
       </div>
-
-      {/* Scroll indicator */}
-      <button
-        onClick={() => scrollTo('#info-bar')}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-ink-300 hover:text-volt-500 transition-colors animate-float"
-        aria-label="Scroll down"
-      >
-        <ChevronDown className="h-7 w-7" />
-      </button>
     </section>
   );
 }

@@ -20,7 +20,7 @@ export const SITE = {
   hours: '9:00 AM – 10:00 PM',
   hoursShort: '9 AM – 10 PM',
   workingDays: 'Open All Days',
-  activityCount: 13,
+  activityCount: '10+',
   weightLimit: '120 kg',
   pricing: {
     trampolinePark: {
@@ -62,6 +62,7 @@ export const NAV_LINKS = [
   { label: 'PRICES', href: '#pricing' },
   { label: 'RFID CARDS', href: '#rfid-cards' },
   { label: 'OFFERS', href: '#offers' },
+  { label: 'LATEST INFO', href: '#latest-info' },
   { label: 'BOOKING', href: '#booking' },
   { label: 'STATUS', href: '#booking' },
   { label: 'ABOUT', href: '#about' },

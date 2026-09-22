@@ -5,130 +5,213 @@ export interface Activity {
   shortDescription: string;
   fullDescription: string;
   safetyInfo: string;
+  category: 'Trampoline' | 'Adventure' | 'Kids Soft Play';
 }
 
 export const ACTIVITIES: Activity[] = [
+  // --- TRAMPOLINE ARENAS ---
   {
-    id: 'climbing-wall',
-    name: 'INDOOR CLIMBING WALL',
-    image:
-      'https://images.pexels.com/photos/5384642/pexels-photo-5384642.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'trampoline-basketball',
+    name: 'TRAMPOLINE BASKETBALL SLAM DUNK',
+    image: '/games/game_trampoline_basketball.jpg',
     shortDescription:
-      'Scale new heights on our indoor climbing wall designed for all skill levels.',
+      'Launch from springy trampoline runway beds to execute high-flying slam dunks into regulation hoops.',
     fullDescription:
-      'Challenge yourself on our indoor climbing wall, built for beginners and experienced climbers alike. Test your strength, focus, and determination as you ascend to the top. A thrilling vertical adventure that builds confidence and coordination.',
+      'Take your basketball skills to gravity-defying heights! Use dedicated trampoline launch runways to soar into the air and pull off spectacular dunks and alley-oops under vibrant neon LED arena lighting.',
     safetyInfo:
-      'Follow staff instructions and use required safety equipment at all times. Participants must be below 120 kg.',
+      'Do not hang on the rim. One jumper per lane at a time. Maximum weight: 120 kg.',
+    category: 'Trampoline',
   },
   {
     id: 'main-trampoline-court',
-    name: 'MAIN TRAMPOLINE COURT',
-    image:
-      'https://images.pexels.com/photos/6571947/pexels-photo-6571947.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    name: 'MAIN TRAMPOLINE COURT & FREE JUMP ARENA',
+    image: '/games/game_main_trampoline_court.jpg',
     shortDescription:
-      'Jump, bounce, and fly across our expansive main trampoline court.',
+      'Massive interconnected trampoline jumping courts with 45-degree angled rebound walls.',
     fullDescription:
-      'Experience the pure joy of weightlessness on our main trampoline court. Bounce, flip, and soar through the air in a massive space designed for maximum fun. Perfect for kids, teens, and adults looking to defy gravity.',
+      'Our flagship jumping arena features wall-to-wall interconnected trampoline beds, padded dividing runways, and 45-degree angled wall trampolines for high-energy wall runs, flips, and freestyle bouncing.',
     safetyInfo:
-      'Follow staff instructions and activity-specific rules. One jumper per square at a time. Participants must be below 120 kg.',
+      'One jumper per trampoline square. Grip socks mandatory. Max weight: 120 kg.',
+    category: 'Trampoline',
   },
   {
-    id: 'trampoline-basketball',
-    name: 'TRAMPOLINE BASKETBALL',
-    image:
-      'https://images.pexels.com/photos/8693810/pexels-photo-8693810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'mega-arena-glow',
+    name: 'UNLIMITED FUN MEGA GLOW ARENA',
+    image: '/games/game_mega_arena_glow.jpg',
     shortDescription:
-      'Slam dunk like a pro with the added power of trampoline launches.',
+      'Experience the entire adventure park with concert-grade multi-color laser lighting and sound.',
     fullDescription:
-      'Take your basketball game to new heights — literally. Use the trampoline runway to launch yourself for spectacular dunks and jaw-dropping shots. A fan favourite that combines athletic skill with pure adrenaline.',
+      'Immerse yourself in Bhimavaram’s largest indoor adventure zone equipped with vibrant laser light shows, neon glow trusses, and heart-pumping sound for an unforgettable glow jump party experience.',
     safetyInfo:
-      'Follow staff instructions. Wait for the previous player to exit before starting your run. Participants must be below 120 kg.',
+      'Follow marshal instructions throughout the arena. Max weight limit: 120 kg.',
+    category: 'Trampoline',
+  },
+
+  // --- ADVENTURE & OBSTACLE CHALLENGES ---
+  {
+    id: 'spiderman-climbing-wall',
+    name: 'SPIDER-MAN SUPERHERO CLIMBING WALL',
+    image: '/games/game_spiderman_climbing_wall.jpg',
+    shortDescription:
+      'Scale exciting vertical routes on our Marvel Spider-Man themed climbing wall over cushioned landing mats.',
+    fullDescription:
+      'Unleash your inner superhero on our iconic Spider-Man climbing wall. Featuring textured multi-level holds across realistic 3D comic artwork, this wall lets kids and teens test grip strength, agility, and balance with complete safety.',
+    safetyInfo:
+      'One climber per section. Padded trampoline landing zone below. Max weight: 120 kg.',
+    category: 'Adventure',
   },
   {
-    id: 'sweeper',
-    name: 'SWEEPER',
-    image:
-      'https://images.pexels.com/photos/1739321/pexels-photo-1739321.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'castle-climbing-wall',
+    name: 'FAIRYTALE CASTLE CLIMBING WALL',
+    image: '/games/game_castle_climbing_wall.jpg',
     shortDescription:
-      'Duck, jump, and dodge the spinning sweeper bar to stay in the game.',
+      'Climb magical enchanted castle routes with colorful ergonomic holds over trampoline jump beds.',
     fullDescription:
-      'Test your reflexes and agility on the Sweeper. A rotating bar sweeps across the platform and your job is to jump over or duck under it. Last one standing wins. It is fast, fun, and guaranteed to get your heart racing.',
+      'Embark on a fairytale climbing journey! Ascend along magical castle towers with graded handholds designed to build climbing confidence, upper body strength, and coordination for all ages.',
     safetyInfo:
-      'Follow staff instructions. Do not attempt moves beyond your ability. Participants must be below 120 kg.',
+      'One climber per lane. Follow safety marshal instructions. Max weight: 120 kg.',
+    category: 'Adventure',
   },
   {
-    id: 'hanging-tire-bridge',
-    name: 'HANGING TIRE BRIDGE',
-    image:
-      'https://images.pexels.com/photos/15742483/pexels-photo-15742483.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'climbing-wall',
+    name: 'INTERACTIVE KIDS CLIMBING WALL',
+    image: '/games/game_climbing_wall.jpg',
     shortDescription:
-      'Navigate a bridge of suspended tires in this balance and grip challenge.',
+      'Challenge your grip, agility, and balance on our illustrated rock climbing wall built over a soft landing zone.',
     fullDescription:
-      'Cross our hanging tire bridge by stepping from one suspended tire to the next. It takes balance, grip strength, and courage to make it across without touching the ground. A classic adventure challenge that rewards determination.',
+      'Challenge your strength, agility, and balance on our interactive climbing wall featuring ergonomic climbing grips, colorful cartoon adventure artwork, and thick safety padding below for maximum confidence and excitement.',
     safetyInfo:
-      'Follow staff instructions. Maintain grip at all times. Do not rush. Participants must be below 120 kg.',
+      'One climber per lane. Follow safety guidelines. Maximum weight limit: 120 kg.',
+    category: 'Adventure',
+  },
+  {
+    id: 'foam-pit-zorb',
+    name: 'GIANT FOAM PIT & ROLLING BUBBLE ARENA',
+    image: '/games/game_foam_pit_zorb.jpg',
+    shortDescription:
+      'Jump and roll through thousands of ultra-soft foam cubes with giant inflatable bubble balls.',
+    fullDescription:
+      'Dive into thousands of multi-colored foam cubes and roll with giant inflatable spheres under dynamic arena lighting. A safe, thrilling plunge zone that brings pure laughter and joy.',
+    safetyInfo:
+      'Never dive headfirst. Land on your back or buttocks. Exit the landing area promptly.',
+    category: 'Adventure',
   },
   {
     id: 'ninja-warrior-rings',
-    name: 'NINJA WARRIOR RINGS',
-    image:
-      'https://images.pexels.com/photos/6390242/pexels-photo-6390242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    name: 'NINJA WARRIOR SUSPENDED RING TRAVERSE',
+    image: '/games/game_ninja_rings_bridge.jpg',
     shortDescription:
-      'Swing from ring to ring like a ninja warrior in this grip challenge.',
+      'Swing through suspended rings and ropes over the foam pit like an authentic ninja warrior.',
     fullDescription:
-      'Channel your inner ninja as you swing from ring to ring across our Ninja Warrior course. It demands upper body strength, timing, and coordination. Make it to the other side and you will feel like a true warrior.',
+      'Test your upper body stamina, grip strength, and rhythm as you swing from ring to ring high above a deep foam pit. A championship obstacle that builds coordination and athletic skill.',
     safetyInfo:
-      'Follow staff instructions. Use required safety equipment. Do not skip rings. Participants must be below 120 kg.',
+      'One participant per obstacle. Soft foam pit underneath for safety.',
+    category: 'Adventure',
   },
   {
-    id: 'foam-obstacles',
-    name: 'FOAM OBSTACLES & CYLINDRICAL BLOCKS',
-    image:
-      'https://images.pexels.com/photos/6572608/pexels-photo-6572608.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'aerial-suspension-bridge',
+    name: 'AERIAL SUSPENSION STEP & RING BRIDGE',
+    image: '/games/game_aerial_suspension_bridge.jpg',
     shortDescription:
-      'Climb, crawl, and conquer our soft foam obstacle course.',
+      'Traverse hanging suspension planks and triangular swing grips high above the foam pit.',
     fullDescription:
-      'Navigate a colourful course of foam obstacles and cylindrical blocks. Climb over, crawl under, and push through each challenge. Designed for safe, energetic play that keeps everyone moving and laughing.',
+      'Test your balance and agility across multiple aerial suspension lanes! Cross swinging rectangular foot bridges and swing through gymnastic rings over an ultra-deep foam cube landing pit.',
     safetyInfo:
-      'Follow staff instructions and activity-specific rules. Do not throw foam blocks. Participants must be below 120 kg.',
+      'One participant per lane. Maintain firm grip on chain supports.',
+    category: 'Adventure',
   },
   {
-    id: 'foam-bridges',
-    name: 'TRIANGLE & RECTANGLE FOAM BRIDGES',
-    image:
-      'https://images.pexels.com/photos/11244351/pexels-photo-11244351.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'rope-ladder-climb',
+    name: 'DISC ROPE & LADDER ADVENTURE CLIMB',
+    image: '/games/game_rope_ladder_climb.jpg',
     shortDescription:
-      'Balance and bound across geometric foam bridges in a fun challenge.',
+      'Climb disc ropes and aerial wooden ladders suspended over the neon foam cube arena.',
     fullDescription:
-      'Cross our triangle and rectangle foam bridges, stepping carefully from one shape to the next. Each bridge tests your balance and coordination in a different way. A playful challenge that is as fun to watch as it is to do.',
+      'Conquer our suspended disc ropes, rope ladders, and hanging wooden rungs under vibrant neon lighting. Perfect for testing agility, climbing technique, and aerial balance.',
     safetyInfo:
-      'Follow staff instructions. Cross one at a time. Do not push other participants. Participants must be below 120 kg.',
+      'Maintain firm grip with both hands. Follow safety instructions.',
+    category: 'Adventure',
   },
   {
-    id: 'jumping-balloons',
-    name: 'JUMPING BALLOONS',
-    image:
-      'https://images.pexels.com/photos/296308/pexels-photo-296308.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+    id: 'hanging-tire-bridge',
+    name: 'ACROBATIC HANGING TIRE BRIDGE',
+    image: '/games/game_hanging_tire_bridge.jpg',
     shortDescription:
-      'Bounce and play in our colourful jumping balloon zone.',
+      'Step and balance across colorful webbed tires suspended on chains over the foam zone.',
     fullDescription:
-      'Jump into a vibrant zone filled with colourful balloons for bouncing, playing, and letting loose. Perfect for younger visitors and anyone who loves pure, unstructured fun. A joyful experience that lights up every face.',
+      'Cross the arena by stepping from one swinging suspended tire to the next. Demands concentration, steady footwork, and balance over an exciting aerial crossing.',
     safetyInfo:
-      'Follow staff instructions. No rough play. Follow all park guidelines. Participants must be below 120 kg.',
+      'Maintain two points of contact. Do not intentionally swing or shake the bridge.',
+    category: 'Adventure',
+  },
+
+  // --- KIDS SOFT PLAY & MAZES ---
+  {
+    id: 'giant-ball-pool-slides',
+    name: 'GIANT OCEAN BALL POOL & DUAL SLIDES',
+    image: '/games/game_giant_ball_pool_slides.jpg',
+    shortDescription:
+      'Slide down dual-lane wave slides straight into a giant sea of purple and white soft play balls.',
+    fullDescription:
+      'Plunge into an expansive ocean of thousands of sanitized purple and white balls! Features twin racing slides, padded foam climbing steps, and interactive play elements for endless fun.',
+    safetyInfo:
+      'For children below 5 years or 2.5 feet. Remove sharp items before entering.',
+    category: 'Kids Soft Play',
+  },
+  {
+    id: '2tier-soft-play-maze',
+    name: '2-TIER SOFT PLAY ADVENTURE MAZE',
+    image: '/games/game_2tier_soft_play_maze.jpg',
+    shortDescription:
+      'Multi-level padded adventure jungle gym with obstacle tunnels, swings, and viewing nets.',
+    fullDescription:
+      'A multi-level enclosed adventure paradise! Little ones can climb soft stairs, crawl through themed tunnels, navigate cross-obstacles, and look out across the entire park through heavy-duty safety mesh.',
+    safetyInfo:
+      'Strictly for young kids. Socks mandatory. Maximum safety netting on all levels.',
+    category: 'Kids Soft Play',
+  },
+  {
+    id: 'toddler-soft-play',
+    name: 'TODDLER CANDY PLAY ZONE & SOFT ARENA',
+    image: '/games/game_toddler_soft_play.jpg',
+    shortDescription:
+      'Colorful candy-themed enclosed soft play structure with sensory slides, foam cubes, and mini obstacles.',
+    fullDescription:
+      'A whimsical sweet-treat wonderland built specifically for little adventurers under 5 years. Features soft foam climbing ramps, mini ball pits, candy archways, and ultra-padded safety netting.',
+    safetyInfo:
+      'Designed exclusively for children below 5 years or 2.5 feet. Parental supervision required.',
+    category: 'Kids Soft Play',
+  },
+  {
+    id: 'x-obstacle-tunnel',
+    name: 'X-OBSTACLE SOFT PLAY CRAWL TUNNEL',
+    image: '/games/game_x_obstacle_tunnel.jpg',
+    shortDescription:
+      'Navigate padded diagonal X-beam hurdles and colorful crawl-through tunnels.',
+    fullDescription:
+      'A fun sensory motor-skill challenge featuring padded diagonal X-cylinders and tunnel crawl passages designed to encourage active exploration, crawling, and balance in a safe environment.',
+    safetyInfo:
+      'Padded foam construction. Suitable for toddlers and young children.',
+    category: 'Kids Soft Play',
   },
 ];
 
 export const GALLERY_IMAGES = [
-  'https://images.pexels.com/photos/6571947/pexels-photo-6571947.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/5384642/pexels-photo-5384642.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/3763703/pexels-photo-3763703.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/8693810/pexels-photo-8693810.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/6390242/pexels-photo-6390242.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/296308/pexels-photo-296308.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/1739321/pexels-photo-1739321.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/15742483/pexels-photo-15742483.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/6572608/pexels-photo-6572608.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/11031912/pexels-photo-11031912.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/11244351/pexels-photo-11244351.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
-  'https://images.pexels.com/photos/1313818/pexels-photo-1313818.jpeg?auto=compress&cs=tinysrgb&w=1260&h=840',
+  '/games/game_arena_entrance_facade.jpg',
+  '/games/game_mega_arena_glow.jpg',
+  '/games/game_main_trampoline_court.jpg',
+  '/games/game_trampoline_basketball.jpg',
+  '/games/game_spiderman_climbing_wall.jpg',
+  '/games/game_castle_climbing_wall.jpg',
+  '/games/game_giant_ball_pool_slides.jpg',
+  '/games/game_2tier_soft_play_maze.jpg',
+  '/games/game_toddler_soft_play.jpg',
+  '/games/game_x_obstacle_tunnel.jpg',
+  '/games/game_climbing_wall.jpg',
+  '/games/game_foam_pit_zorb.jpg',
+  '/games/game_ninja_rings_bridge.jpg',
+  '/games/game_aerial_suspension_bridge.jpg',
+  '/games/game_rope_ladder_climb.jpg',
+  '/games/game_hanging_tire_bridge.jpg',
+  '/games/game_night_entry_pathway.jpg',
 ];

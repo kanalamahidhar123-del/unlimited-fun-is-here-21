@@ -572,3 +572,109 @@ export function clearAllBookings(): boolean {
     return false;
   }
 }
+
+// ----------------------------------------------------
+// DAILY BOOKING CAPACITY (50 Bookings per Day)
+// ----------------------------------------------------
+export const DAILY_CAPACITY = 50;
+
+export function getDateBookingCount(date: string): number {
+  if (!date) return 0;
+  const list = getBookings();
+  return list.filter((b) => {
+    if (b.booking_status === 'Cancelled' || b.payment_status === 'Failed') return false;
+    const bDate = b.visit_date || (b.created_at ? b.created_at.split('T')[0] : '');
+    return bDate === date;
+  }).length;
+}
+
+export function isDateFull(date: string): boolean {
+  return getDateBookingCount(date) >= DAILY_CAPACITY;
+}
+
+export function getNextAvailableDate(startDate?: string): string {
+  const start = startDate ? new Date(startDate) : new Date();
+  for (let i = 1; i <= 60; i++) {
+    const next = new Date(start);
+    next.setDate(start.getDate() + i);
+    const dateStr = next.toISOString().split('T')[0];
+    if (getDateBookingCount(dateStr) < DAILY_CAPACITY) {
+      return dateStr;
+    }
+  }
+  const fallback = new Date(start);
+  fallback.setDate(start.getDate() + 1);
+  return fallback.toISOString().split('T')[0];
+}
+
+export function formatFriendlyDate(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+export interface DayCapacity {
+  date: string;
+  booked: number;
+  capacity: number;
+  remaining: number;
+  isFull: boolean;
+  status: 'AVAILABLE' | 'FULL';
+}
+
+export function getCapacitySummary(daysCount = 14): DayCapacity[] {
+  const result: DayCapacity[] = [];
+  const today = new Date();
+  for (let i = 0; i < daysCount; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    const booked = getDateBookingCount(dateStr);
+    const remaining = Math.max(0, DAILY_CAPACITY - booked);
+    const isFull = booked >= DAILY_CAPACITY;
+    result.push({
+      date: dateStr,
+      booked,
+      capacity: DAILY_CAPACITY,
+      remaining,
+      isFull,
+      status: isFull ? 'FULL' : 'AVAILABLE',
+    });
+  }
+  return result;
+}
+
+export async function fetchCapacityFromServer(date?: string): Promise<any> {
+  try {
+    const url = date ? `/api/capacity?date=${encodeURIComponent(date)}` : '/api/capacity';
+    const res = await fetch(url);
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success) return json.data;
+    }
+  } catch (e) {
+    // fallback to local calculation
+  }
+  if (date) {
+    const booked = getDateBookingCount(date);
+    return {
+      date,
+      capacity: DAILY_CAPACITY,
+      booked,
+      remaining: Math.max(0, DAILY_CAPACITY - booked),
+      isFull: booked >= DAILY_CAPACITY,
+      status: booked >= DAILY_CAPACITY ? 'FULL' : 'AVAILABLE',
+      nextAvailableDate: booked >= DAILY_CAPACITY ? getNextAvailableDate(date) : null,
+    };
+  }
+  return getCapacitySummary(14);
+}
+

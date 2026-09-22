@@ -9,7 +9,7 @@ const features = [
   {
     icon: Trophy,
     title: 'Friendly Competition',
-    text: 'Challenge your friends and family across 13 exciting activities designed for active fun.',
+    text: 'Challenge your friends and family across 10+ exciting activities designed for active fun.',
   },
   {
     icon: Heart,

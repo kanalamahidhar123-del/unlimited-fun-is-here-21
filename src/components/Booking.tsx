@@ -15,6 +15,11 @@ import {
   createBooking,
   getBookings,
   getBookingStatusBadge,
+  getDateBookingCount,
+  isDateFull,
+  getNextAvailableDate,
+  formatFriendlyDate,
+  DAILY_CAPACITY,
   type BookingRecord,
 } from '@/lib/bookingStore';
 
@@ -94,6 +99,14 @@ export default function Booking() {
     ? getBookings().find((b) => b.id === confirmedBookingId || b.booking_id === confirmedBookingId) || null
     : null;
 
+  // Daily 50 Capacity Logic
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isTodayFull = isDateFull(todayStr);
+  const selectedDateBooked = form.visit_date ? getDateBookingCount(form.visit_date) : 0;
+  const isSelectedDateFull = form.visit_date ? isDateFull(form.visit_date) : false;
+  const nextAvailableDate = isSelectedDateFull ? getNextAvailableDate(form.visit_date) : '';
+  const remainingSlots = Math.max(0, DAILY_CAPACITY - selectedDateBooked);
+
   const validate = (): boolean => {
     const e: Partial<Record<keyof FormState, string>> = {};
     if (!form.full_name.trim()) e.full_name = 'Full name is required';
@@ -108,7 +121,11 @@ export default function Booking() {
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       e.email = 'Enter a valid email address';
     }
-    if (!form.visit_date) e.visit_date = 'Visit date is required';
+    if (!form.visit_date) {
+      e.visit_date = 'Visit date is required';
+    } else if (isDateFull(form.visit_date)) {
+      e.visit_date = `This date is fully booked (${DAILY_CAPACITY}/${DAILY_CAPACITY}). Please choose another date.`;
+    }
     if (!form.preferred_time) e.preferred_time = 'Preferred time is required';
     if (adultsCount + childrenCount < 1) {
       e.adults = 'At least 1 visitor (adult or child) is required';
@@ -127,6 +144,15 @@ export default function Booking() {
     ev.preventDefault();
     if (!validate()) return;
     if (status === 'submitting') return; // Prevent duplicate submissions
+
+    // Daily capacity double-check
+    if (isDateFull(form.visit_date)) {
+      const nextDate = getNextAvailableDate(form.visit_date);
+      setErrorMessage(
+        `🎟️ Today's tickets are fully booked! Please try booking for tomorrow or ${formatFriendlyDate(nextDate)}.`
+      );
+      return;
+    }
 
     setStatus('submitting');
     setErrorMessage(null);
@@ -475,6 +501,22 @@ export default function Booking() {
                 </div>
               )}
 
+              {isTodayFull && !form.visit_date && (
+                <div className="mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-xs sm:text-sm text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 font-medium">
+                    <span className="text-lg">🎟️</span>
+                    <span><strong>Today's tickets are fully booked!</strong> Please try booking for tomorrow or select an available date below.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => update('visit_date', getNextAvailableDate(todayStr))}
+                    className="px-3.5 py-1.5 rounded-full bg-volt-500 text-ink-950 font-bold text-xs hover:bg-volt-400 transition-colors whitespace-nowrap shadow"
+                  >
+                    Book for {formatFriendlyDate(getNextAvailableDate(todayStr))}
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Full Name */}
                 <div>
@@ -567,6 +609,32 @@ export default function Booking() {
                     {errors.visit_date && (
                       <p className={errClass}>
                         <AlertCircle className="h-3 w-3" /> {errors.visit_date}
+                      </p>
+                    )}
+                    {isSelectedDateFull && (
+                      <div className="mt-2.5 rounded-xl bg-flame-500/15 border border-flame-500/40 p-3 text-xs text-flame-300 space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-flame-400">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                          <span>🎟️ Today's tickets are fully booked! (50/50 capacity reached)</span>
+                        </div>
+                        {nextAvailableDate && (
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-flame-500/20">
+                            <span>The next available date is <strong>{formatFriendlyDate(nextAvailableDate)}</strong>. Book your slot now!</span>
+                            <button
+                              type="button"
+                              onClick={() => update('visit_date', nextAvailableDate)}
+                              className="inline-flex items-center justify-center px-3 py-1 rounded-lg bg-volt-500 text-ink-950 font-bold text-[11px] hover:bg-volt-400 transition-colors whitespace-nowrap shadow-sm"
+                            >
+                              Select {formatFriendlyDate(nextAvailableDate)}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {form.visit_date && !isSelectedDateFull && (
+                      <p className="mt-1.5 text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {remainingSlots} / {DAILY_CAPACITY} Slots Available for {formatFriendlyDate(form.visit_date)}
                       </p>
                     )}
                   </div>

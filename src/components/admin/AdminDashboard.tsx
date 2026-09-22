@@ -13,6 +13,8 @@ import {
   RefreshCw,
   AlertTriangle,
   Trash2,
+  Megaphone,
+  Gauge,
 } from 'lucide-react';
 import {
   getBookings,
@@ -27,13 +29,15 @@ import {
   type SystemPaymentMode,
 } from '@/lib/bookingStore';
 import BookingDetailsModal from './BookingDetailsModal';
+import AdminAnnouncements from './AdminAnnouncements';
+import AdminCapacityTracker from './AdminCapacityTracker';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid'>('overview');
+  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid' | 'announcements' | 'capacity'>('overview');
   const [bookings, setBookings] = useState<BookingRecord[]>(getBookings());
   const [stats, setStats] = useState(getDashboardStats());
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
@@ -278,6 +282,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           >
             <CreditCard className="h-4 w-4" />
             RFID CARDS ({stats.totalRfidBookings})
+          </button>
+          <button
+            onClick={() => setTab('announcements')}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all ${
+              tab === 'announcements'
+                ? 'bg-volt-500 text-ink-950 shadow-md shadow-volt-500/20'
+                : 'bg-ink-900 text-ink-300 hover:text-white hover:bg-ink-800'
+            }`}
+          >
+            <Megaphone className="h-4 w-4" />
+            📢 MANAGE LATEST INFO
+          </button>
+          <button
+            onClick={() => setTab('capacity')}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all ${
+              tab === 'capacity'
+                ? 'bg-volt-500 text-ink-950 shadow-md shadow-volt-500/20'
+                : 'bg-ink-900 text-ink-300 hover:text-white hover:bg-ink-800'
+            }`}
+          >
+            <Gauge className="h-4 w-4" />
+            📊 CAPACITY TRACKER (50/DAY)
           </button>
         </div>
 
@@ -750,6 +776,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               </div>
             </div>
           </div>
+        )}
+
+        {/* 4. MANAGE LATEST INFO / ANNOUNCEMENTS TAB */}
+        {tab === 'announcements' && (
+          <AdminAnnouncements onNotify={showToast} />
+        )}
+
+        {/* 5. CAPACITY TRACKER (50/DAY) TAB */}
+        {tab === 'capacity' && (
+          <AdminCapacityTracker
+            bookings={bookings}
+            onSelectBooking={(b) => setSelectedBooking(b)}
+          />
         )}
       </main>
 
