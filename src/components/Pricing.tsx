@@ -187,9 +187,9 @@ export default function Pricing({ onBookClick }: PricingProps) {
 
         {/* Important Pricing Note */}
         <div className="flex items-center justify-center">
-          <div className="inline-flex items-center gap-2.5 rounded-full bg-ink-900/90 border border-ink-800 px-5 py-2.5 text-ink-300 text-xs sm:text-sm font-medium shadow-sm">
+          <div className="inline-flex items-center gap-2.5 rounded-full bg-ink-900/90 border border-ink-800 px-5 py-2.5 text-ink-300 text-xs sm:text-sm font-bold shadow-sm">
             <AlertTriangle className="h-4 w-4 text-volt-500 flex-shrink-0" />
-            <span>⚠️ Participants must be below {SITE.weightLimit}.</span>
+            <span>⚠️ Maximum Weight: 80 KG for trampoline &amp; adventure activities.</span>
           </div>
         </div>
       </div>

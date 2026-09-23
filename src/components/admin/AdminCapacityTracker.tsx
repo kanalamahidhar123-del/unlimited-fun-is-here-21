@@ -60,10 +60,10 @@ export default function AdminCapacityTracker({
             <span>Capacity & Slot Management</span>
           </div>
           <h2 className="font-display font-black text-2xl sm:text-3xl text-white">
-            📊 DAILY 50 <span className="text-volt-500">CAPACITY TRACKER</span>
+            📊 DAILY 300 <span className="text-volt-500">CAPACITY TRACKER</span>
           </h2>
           <p className="text-xs sm:text-sm text-ink-400 mt-1 max-w-2xl">
-            Real-time tracking of daily 50 booking limits. Prevents overbooking and ensures visitor safety and park flow.
+            Real-time tracking of daily 300 booking limits. Prevents overbooking and ensures visitor safety and park flow.
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export default function AdminCapacityTracker({
 
         {selectedDateBookings.length === 0 ? (
           <div className="p-8 text-center text-ink-400 text-sm">
-            No bookings scheduled for this date yet. All 50 slots are available.
+            No bookings scheduled for this date yet. All {DAILY_CAPACITY} slots are available.
           </div>
         ) : (
           <div className="overflow-x-auto">

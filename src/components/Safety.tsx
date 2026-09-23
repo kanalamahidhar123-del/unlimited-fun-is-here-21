@@ -3,11 +3,11 @@ import { Shield, Info } from 'lucide-react';
 const rules = [
   'Follow staff instructions.',
   'Follow activity-specific rules.',
-  'Use required safety equipment.',
+  'Use required safety equipment and grip socks.',
   'Follow all park guidelines.',
   'Respect other visitors.',
   'Do not enter restricted areas.',
-  'Participants must be below 120 kg.',
+  'Maximum Weight: 80 KG.',
 ];
 
 export default function Safety() {

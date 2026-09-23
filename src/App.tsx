@@ -5,14 +5,15 @@ import Hero from '@/components/Hero';
 import InfoBar from '@/components/InfoBar';
 import About from '@/components/About';
 import Games from '@/components/Games';
+import Gallery from '@/components/Gallery';
 import Pricing from '@/components/Pricing';
 import Offers from '@/components/Offers';
+import GroupBookings from '@/components/GroupBookings';
 import LatestInfo from '@/components/LatestInfo';
 import RfidCards from '@/components/RfidCards';
 import Booking from '@/components/Booking';
 import Birthday from '@/components/Birthday';
 import Safety from '@/components/Safety';
-import Gallery from '@/components/Gallery';
 import FAQ from '@/components/FAQ';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
@@ -26,13 +27,17 @@ import AdminLogin from '@/components/admin/AdminLogin';
 export type AppView =
   | 'home'
   | 'games'
+  | 'gallery'
   | 'pricing'
   | 'offers'
-  | 'booking'
-  | 'latest-info'
+  | 'groups'
   | 'birthday'
+  | 'booking'
   | 'about'
-  | 'contact';
+  | 'rules'
+  | 'faq'
+  | 'contact'
+  | 'latest-info';
 
 function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(false);
@@ -81,19 +86,25 @@ function App() {
         // Map hash to view
         if (
           hash === 'games' ||
+          hash === 'gallery' ||
           hash === 'pricing' ||
           hash === 'offers' ||
-          hash === 'booking' ||
-          hash === 'latest-info' ||
+          hash === 'groups' ||
+          hash === 'group-bookings' ||
           hash === 'birthday' ||
+          hash === 'booking' ||
           hash === 'about' ||
-          hash === 'contact'
+          hash === 'rules' ||
+          hash === 'safety' ||
+          hash === 'faq' ||
+          hash === 'contact' ||
+          hash === 'latest-info'
         ) {
-          setActiveView(hash as AppView);
+          if (hash === 'group-bookings') setActiveView('groups');
+          else if (hash === 'safety') setActiveView('rules');
+          else setActiveView(hash as AppView);
         } else if (hash === 'rfid-cards') {
           setActiveView('pricing');
-        } else if (hash === 'gallery' || hash === 'safety' || hash === 'faq') {
-          setActiveView('about');
         } else {
           setActiveView('home');
         }
@@ -114,25 +125,32 @@ function App() {
     if (clean === 'admin') {
       window.location.hash = 'admin';
       setIsAdminRoute(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     window.location.hash = clean;
     if (
       clean === 'games' ||
+      clean === 'gallery' ||
       clean === 'pricing' ||
       clean === 'offers' ||
-      clean === 'booking' ||
-      clean === 'latest-info' ||
+      clean === 'groups' ||
+      clean === 'group-bookings' ||
       clean === 'birthday' ||
+      clean === 'booking' ||
       clean === 'about' ||
-      clean === 'contact'
+      clean === 'rules' ||
+      clean === 'safety' ||
+      clean === 'faq' ||
+      clean === 'contact' ||
+      clean === 'latest-info'
     ) {
-      setActiveView(clean as AppView);
+      if (clean === 'group-bookings') setActiveView('groups');
+      else if (clean === 'safety') setActiveView('rules');
+      else setActiveView(clean as AppView);
     } else if (clean === 'rfid-cards') {
       setActiveView('pricing');
-    } else if (clean === 'gallery' || clean === 'safety' || clean === 'faq') {
-      setActiveView('about');
     } else {
       setActiveView('home');
     }
@@ -173,32 +191,45 @@ function App() {
       {/* Persistent Global Header & 3-Line Hamburger Menu */}
       <Navbar activeView={activeView} onNavigate={handleNavigate} />
 
-      {/* Main Multi-View / Page-Based Content */}
+      {/* Main Multi-View / Page-Based Content with Fast Smooth Transitions */}
       <main className="flex-1 w-full">
-        {/* VIEW 1: HOME (Executive Hub) */}
+        {/* VIEW 1: HOME (Concise Hub) */}
         {activeView === 'home' && (
           <div className="space-y-0 animate-in fade-in duration-300">
             <Hero onNavigate={handleNavigate} />
             <InfoBar />
             <LatestInfo />
             <Games onBookClick={() => handleNavigate('booking')} />
+            <Gallery
+              isPreview={true}
+              onViewFullGallery={() => handleNavigate('gallery')}
+              onBookClick={() => handleNavigate('booking')}
+            />
+            <Offers />
             <Pricing onBookClick={() => handleNavigate('booking')} />
             <About />
-            <Safety />
-            <FAQ />
             <Contact />
           </div>
         )}
 
-        {/* VIEW 2: GAMES & ACTIVITIES (13 Games) */}
+        {/* VIEW 2: GAMES & ACTIVITIES (10+ Games) */}
         {activeView === 'games' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <Games onBookClick={() => handleNavigate('booking')} />
-            <Safety />
           </div>
         )}
 
-        {/* VIEW 3: PRICES & PACKAGES */}
+        {/* VIEW 3: DEDICATED OFFICIAL GALLERY */}
+        {activeView === 'gallery' && (
+          <div className="pt-16 animate-in fade-in duration-300">
+            <Gallery
+              isPreview={false}
+              onBookClick={() => handleNavigate('booking')}
+            />
+          </div>
+        )}
+
+        {/* VIEW 4: PRICES & PACKAGES */}
         {activeView === 'pricing' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <Pricing onBookClick={() => handleNavigate('booking')} />
@@ -206,56 +237,72 @@ function App() {
           </div>
         )}
 
-        {/* VIEW 4: SPECIAL OFFERS */}
+        {/* VIEW 5: SPECIAL OFFERS */}
         {activeView === 'offers' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <Offers />
-            <Birthday />
           </div>
         )}
 
-        {/* VIEW 5: BOOK YOUR SLOT */}
-        {activeView === 'booking' && (
+        {/* VIEW 6: GROUP BOOKINGS (15+ and 30+ Private Slot) */}
+        {activeView === 'groups' && (
           <div className="pt-16 animate-in fade-in duration-300">
-            <Booking />
+            <GroupBookings onBookClick={() => handleNavigate('booking')} />
           </div>
         )}
 
-        {/* VIEW 6: KNOW LATEST INFO / ANNOUNCEMENTS */}
-        {activeView === 'latest-info' && (
-          <div className="pt-16 animate-in fade-in duration-300">
-            <LatestInfo />
-          </div>
-        )}
-
-        {/* VIEW 7: BIRTHDAY & PARTY PACKAGES */}
+        {/* VIEW 7: BIRTHDAY PARTIES */}
         {activeView === 'birthday' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <Birthday />
           </div>
         )}
 
-        {/* VIEW 8: LOCATION & ABOUT */}
+        {/* VIEW 8: BOOK YOUR SLOT (Existing 300 Capacity Booking Engine) */}
+        {activeView === 'booking' && (
+          <div className="pt-16 animate-in fade-in duration-300">
+            <Booking />
+          </div>
+        )}
+
+        {/* VIEW 9: ABOUT US & FOUNDER */}
         {activeView === 'about' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <About />
+          </div>
+        )}
+
+        {/* VIEW 10: RULES & SAFETY (80 KG Max Weight) */}
+        {activeView === 'rules' && (
+          <div className="pt-16 animate-in fade-in duration-300">
             <Safety />
-            <Gallery />
+          </div>
+        )}
+
+        {/* VIEW 11: FAQ */}
+        {activeView === 'faq' && (
+          <div className="pt-16 animate-in fade-in duration-300">
             <FAQ />
           </div>
         )}
 
-        {/* VIEW 9: CONTACT & SUPPORT */}
+        {/* VIEW 12: CONTACT & LOCATION */}
         {activeView === 'contact' && (
           <div className="pt-16 animate-in fade-in duration-300">
             <Contact />
-            <FAQ />
+          </div>
+        )}
+
+        {/* VIEW 13: KNOW LATEST INFO / ANNOUNCEMENTS */}
+        {activeView === 'latest-info' && (
+          <div className="pt-16 animate-in fade-in duration-300">
+            <LatestInfo />
           </div>
         )}
       </main>
 
       {/* Global Footer & Floating Support */}
-      <Footer />
+      <Footer onNavigate={handleNavigate} />
       <BackToTop />
       <Chatbot />
     </div>

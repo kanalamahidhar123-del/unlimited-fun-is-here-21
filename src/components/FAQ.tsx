@@ -38,7 +38,7 @@ const faqs: FAQItem[] = [
   },
   {
     q: 'Is there a weight limit?',
-    a: `Yes, participants must be below ${SITE.weightLimit}.`,
+    a: 'Yes, the Maximum Weight limit is 80 KG for trampoline and adventure activities to ensure safe jump dynamics and visitor safety.',
   },
   {
     q: 'How can I book a slot?',

@@ -31,13 +31,14 @@ import {
 import BookingDetailsModal from './BookingDetailsModal';
 import AdminAnnouncements from './AdminAnnouncements';
 import AdminCapacityTracker from './AdminCapacityTracker';
+import { BookingDateManagement } from './BookingDateManagement';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid' | 'announcements' | 'capacity'>('overview');
+  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid' | 'booking-dates' | 'announcements' | 'capacity'>('overview');
   const [bookings, setBookings] = useState<BookingRecord[]>(getBookings());
   const [stats, setStats] = useState(getDashboardStats());
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
@@ -284,6 +285,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             RFID CARDS ({stats.totalRfidBookings})
           </button>
           <button
+            onClick={() => setTab('booking-dates')}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all ${
+              tab === 'booking-dates'
+                ? 'bg-volt-500 text-ink-950 shadow-md shadow-volt-500/20'
+                : 'bg-ink-900 text-ink-300 hover:text-white hover:bg-ink-800'
+            }`}
+          >
+            <CalendarCheck2 className="h-4 w-4" />
+            📅 BOOKING DATE MANAGEMENT
+          </button>
+          <button
             onClick={() => setTab('announcements')}
             className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all ${
               tab === 'announcements'
@@ -303,7 +315,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             }`}
           >
             <Gauge className="h-4 w-4" />
-            📊 CAPACITY TRACKER (50/DAY)
+            📊 CAPACITY TRACKER (300/DAY)
           </button>
         </div>
 
@@ -778,12 +790,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* 4. MANAGE LATEST INFO / ANNOUNCEMENTS TAB */}
+        {/* 4. BOOKING DATE MANAGEMENT TAB */}
+        {tab === 'booking-dates' && (
+          <BookingDateManagement />
+        )}
+
+        {/* 5. MANAGE LATEST INFO / ANNOUNCEMENTS TAB */}
         {tab === 'announcements' && (
           <AdminAnnouncements onNotify={showToast} />
         )}
 
-        {/* 5. CAPACITY TRACKER (50/DAY) TAB */}
+        {/* 6. CAPACITY TRACKER (300/DAY) TAB */}
         {tab === 'capacity' && (
           <AdminCapacityTracker
             bookings={bookings}

@@ -19,7 +19,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Take your basketball skills to gravity-defying heights! Use dedicated trampoline launch runways to soar into the air and pull off spectacular dunks and alley-oops under vibrant neon LED arena lighting.',
     safetyInfo:
-      'Do not hang on the rim. One jumper per lane at a time. Maximum weight: 120 kg.',
+      'Do not hang on the rim. One jumper per lane at a time. Maximum Weight: 80 KG.',
     category: 'Trampoline',
   },
   {
@@ -31,7 +31,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Our flagship jumping arena features wall-to-wall interconnected trampoline beds, padded dividing runways, and 45-degree angled wall trampolines for high-energy wall runs, flips, and freestyle bouncing.',
     safetyInfo:
-      'One jumper per trampoline square. Grip socks mandatory. Max weight: 120 kg.',
+      'One jumper per trampoline square. Grip socks mandatory. Maximum Weight: 80 KG.',
     category: 'Trampoline',
   },
   {
@@ -43,7 +43,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Immerse yourself in Bhimavaram’s largest indoor adventure zone equipped with vibrant laser light shows, neon glow trusses, and heart-pumping sound for an unforgettable glow jump party experience.',
     safetyInfo:
-      'Follow marshal instructions throughout the arena. Max weight limit: 120 kg.',
+      'Follow marshal instructions throughout the arena. Maximum Weight: 80 KG.',
     category: 'Trampoline',
   },
 
@@ -57,7 +57,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Unleash your inner superhero on our iconic Spider-Man climbing wall. Featuring textured multi-level holds across realistic 3D comic artwork, this wall lets kids and teens test grip strength, agility, and balance with complete safety.',
     safetyInfo:
-      'One climber per section. Padded trampoline landing zone below. Max weight: 120 kg.',
+      'One climber per section. Padded trampoline landing zone below. Maximum Weight: 80 KG.',
     category: 'Adventure',
   },
   {
@@ -69,7 +69,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Embark on a fairytale climbing journey! Ascend along magical castle towers with graded handholds designed to build climbing confidence, upper body strength, and coordination for all ages.',
     safetyInfo:
-      'One climber per lane. Follow safety marshal instructions. Max weight: 120 kg.',
+      'One climber per lane. Follow safety marshal instructions. Maximum Weight: 80 KG.',
     category: 'Adventure',
   },
   {
@@ -81,7 +81,7 @@ export const ACTIVITIES: Activity[] = [
     fullDescription:
       'Challenge your strength, agility, and balance on our interactive climbing wall featuring ergonomic climbing grips, colorful cartoon adventure artwork, and thick safety padding below for maximum confidence and excitement.',
     safetyInfo:
-      'One climber per lane. Follow safety guidelines. Maximum weight limit: 120 kg.',
+      'One climber per lane. Follow safety guidelines. Maximum Weight: 80 KG.',
     category: 'Adventure',
   },
   {

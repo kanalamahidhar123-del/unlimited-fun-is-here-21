@@ -74,7 +74,7 @@ export function deleteBookingById(id) {
   return true;
 }
 
-export const DAILY_CAPACITY = 50;
+export const DAILY_CAPACITY = 300;
 
 export function getDateBookingCount(dateStr) {
   if (!dateStr) return 0;

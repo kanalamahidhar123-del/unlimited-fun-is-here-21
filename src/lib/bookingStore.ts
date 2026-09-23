@@ -574,9 +574,91 @@ export function clearAllBookings(): boolean {
 }
 
 // ----------------------------------------------------
-// DAILY BOOKING CAPACITY (50 Bookings per Day)
+// DAILY BOOKING CAPACITY (300 Bookings per Day) & DATE MANAGEMENT
 // ----------------------------------------------------
-export const DAILY_CAPACITY = 50;
+export const DAILY_CAPACITY = 300;
+
+export interface BookingDateConfig {
+  dailyCapacity: number;
+  openedMonths: string[]; // e.g. ['2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02']
+  closedDates: string[]; // e.g. ['2026-09-28']
+  customOpenedDates: string[];
+  customCapacities: Record<string, number>;
+  updatedAt?: string;
+}
+
+const DATE_CONFIG_STORAGE_KEY = 'unlimited_fun_booking_dates_config';
+
+function getDefaultDateConfig(): BookingDateConfig {
+  const current = new Date();
+  const openedMonths: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(current.getFullYear(), current.getMonth() + i, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    openedMonths.push(`${yyyy}-${mm}`);
+  }
+  return {
+    dailyCapacity: DAILY_CAPACITY,
+    openedMonths,
+    closedDates: [],
+    customOpenedDates: [],
+    customCapacities: {},
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function getDateConfig(): BookingDateConfig {
+  try {
+    const raw = localStorage.getItem(DATE_CONFIG_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (!parsed.openedMonths) parsed.openedMonths = [];
+      if (!parsed.closedDates) parsed.closedDates = [];
+      if (!parsed.customOpenedDates) parsed.customOpenedDates = [];
+      if (!parsed.customCapacities) parsed.customCapacities = {};
+      return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to read date config from localStorage', e);
+  }
+  return getDefaultDateConfig();
+}
+
+export function saveDateConfig(config: BookingDateConfig): void {
+  try {
+    config.updatedAt = new Date().toISOString();
+    localStorage.setItem(DATE_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    window.dispatchEvent(new Event('unlimited_fun_date_config_updated'));
+  } catch (e) {
+    console.error('Failed to save date config', e);
+  }
+}
+
+export async function fetchDateConfigFromServer(): Promise<BookingDateConfig> {
+  try {
+    const res = await fetch('/api/booking-dates');
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && json.data) {
+        saveDateConfig(json.data);
+        return json.data;
+      }
+    }
+  } catch (e) {
+    // offline / fallback
+  }
+  return getDateConfig();
+}
+
+export function isDateOpen(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const config = getDateConfig();
+  if (config.closedDates.includes(dateStr)) return false;
+  if (config.customOpenedDates.includes(dateStr)) return true;
+  const ym = dateStr.slice(0, 7);
+  return config.openedMonths.includes(ym);
+}
 
 export function getDateBookingCount(date: string): number {
   if (!date) return 0;
@@ -592,13 +674,52 @@ export function isDateFull(date: string): boolean {
   return getDateBookingCount(date) >= DAILY_CAPACITY;
 }
 
+export function isDateAvailableForCustomer(dateStr: string): {
+  available: boolean;
+  reason?: string;
+  booked: number;
+  capacity: number;
+  remaining: number;
+} {
+  const booked = getDateBookingCount(dateStr);
+  const capacity = DAILY_CAPACITY;
+  const remaining = Math.max(0, capacity - booked);
+
+  if (!isDateOpen(dateStr)) {
+    return {
+      available: false,
+      reason: 'This date is currently closed by administration.',
+      booked,
+      capacity,
+      remaining: 0,
+    };
+  }
+
+  if (booked >= capacity) {
+    return {
+      available: false,
+      reason: "Today's bookings are completely filled. Please try another available date.",
+      booked,
+      capacity,
+      remaining: 0,
+    };
+  }
+
+  return {
+    available: true,
+    booked,
+    capacity,
+    remaining,
+  };
+}
+
 export function getNextAvailableDate(startDate?: string): string {
   const start = startDate ? new Date(startDate) : new Date();
-  for (let i = 1; i <= 60; i++) {
+  for (let i = 1; i <= 90; i++) {
     const next = new Date(start);
     next.setDate(start.getDate() + i);
     const dateStr = next.toISOString().split('T')[0];
-    if (getDateBookingCount(dateStr) < DAILY_CAPACITY) {
+    if (isDateOpen(dateStr) && getDateBookingCount(dateStr) < DAILY_CAPACITY) {
       return dateStr;
     }
   }
@@ -607,12 +728,35 @@ export function getNextAvailableDate(startDate?: string): string {
   return fallback.toISOString().split('T')[0];
 }
 
+export function getNextAvailableOpenDates(startDate?: string, count = 5): Array<{ date: string; booked: number; remaining: number }> {
+  const start = startDate ? new Date(startDate) : new Date();
+  const results: Array<{ date: string; booked: number; remaining: number }> = [];
+
+  for (let i = 1; i <= 120 && results.length < count; i++) {
+    const next = new Date(start);
+    next.setDate(start.getDate() + i);
+    const dateStr = next.toISOString().split('T')[0];
+    if (isDateOpen(dateStr)) {
+      const booked = getDateBookingCount(dateStr);
+      if (booked < DAILY_CAPACITY) {
+        results.push({
+          date: dateStr,
+          booked,
+          remaining: Math.max(0, DAILY_CAPACITY - booked),
+        });
+      }
+    }
+  }
+  return results;
+}
+
 export function formatFriendlyDate(dateStr: string): string {
   if (!dateStr) return '';
   try {
     const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', {
-      month: 'long',
+    return d.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
@@ -626,8 +770,9 @@ export interface DayCapacity {
   booked: number;
   capacity: number;
   remaining: number;
+  isOpen: boolean;
   isFull: boolean;
-  status: 'AVAILABLE' | 'FULL';
+  status: 'AVAILABLE' | 'FULL' | 'CLOSED';
 }
 
 export function getCapacitySummary(daysCount = 14): DayCapacity[] {
@@ -639,42 +784,147 @@ export function getCapacitySummary(daysCount = 14): DayCapacity[] {
     const dateStr = d.toISOString().split('T')[0];
     const booked = getDateBookingCount(dateStr);
     const remaining = Math.max(0, DAILY_CAPACITY - booked);
+    const isOpen = isDateOpen(dateStr);
     const isFull = booked >= DAILY_CAPACITY;
+    let status: 'AVAILABLE' | 'FULL' | 'CLOSED' = 'AVAILABLE';
+    if (!isOpen) status = 'CLOSED';
+    else if (isFull) status = 'FULL';
+
     result.push({
       date: dateStr,
       booked,
       capacity: DAILY_CAPACITY,
       remaining,
+      isOpen,
       isFull,
-      status: isFull ? 'FULL' : 'AVAILABLE',
+      status,
     });
   }
   return result;
 }
 
-export async function fetchCapacityFromServer(date?: string): Promise<any> {
+export async function toggleDateStatusRemote(date: string, open: boolean): Promise<boolean> {
+  // Update local
+  const config = getDateConfig();
+  if (open) {
+    config.closedDates = config.closedDates.filter((d) => d !== date);
+    if (!config.customOpenedDates.includes(date)) config.customOpenedDates.push(date);
+  } else {
+    config.customOpenedDates = config.customOpenedDates.filter((d) => d !== date);
+    if (!config.closedDates.includes(date)) config.closedDates.push(date);
+  }
+  saveDateConfig(config);
+
+  // Sync with server
   try {
-    const url = date ? `/api/capacity?date=${encodeURIComponent(date)}` : '/api/capacity';
-    const res = await fetch(url);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success) return json.data;
-    }
+    await fetch('/api/booking-dates/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, open }),
+    });
   } catch (e) {
-    // fallback to local calculation
+    console.warn('Could not sync date toggle to server:', e);
   }
-  if (date) {
-    const booked = getDateBookingCount(date);
-    return {
-      date,
-      capacity: DAILY_CAPACITY,
-      booked,
-      remaining: Math.max(0, DAILY_CAPACITY - booked),
-      isFull: booked >= DAILY_CAPACITY,
-      status: booked >= DAILY_CAPACITY ? 'FULL' : 'AVAILABLE',
-      nextAvailableDate: booked >= DAILY_CAPACITY ? getNextAvailableDate(date) : null,
-    };
-  }
-  return getCapacitySummary(14);
+  return true;
 }
+
+export async function openMonthRemote(year: number, month: number): Promise<boolean> {
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const config = getDateConfig();
+  if (!config.openedMonths.includes(ym)) {
+    config.openedMonths.push(ym);
+  }
+  // Clear any closed dates in this month
+  config.closedDates = config.closedDates.filter((d) => !d.startsWith(ym));
+  saveDateConfig(config);
+
+  try {
+    await fetch('/api/booking-dates/open-month', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month }),
+    });
+  } catch (e) {
+    console.warn('Could not sync open-month to server:', e);
+  }
+  return true;
+}
+
+export async function closeMonthRemote(year: number, month: number): Promise<boolean> {
+  const ym = `${year}-${String(month).padStart(2, '0')}`;
+  const config = getDateConfig();
+  config.openedMonths = config.openedMonths.filter((m) => m !== ym);
+  config.customOpenedDates = config.customOpenedDates.filter((d) => !d.startsWith(ym));
+  saveDateConfig(config);
+
+  try {
+    await fetch('/api/booking-dates/close-month', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month }),
+    });
+  } catch (e) {
+    console.warn('Could not sync close-month to server:', e);
+  }
+  return true;
+}
+
+export function getAdminDateSummary() {
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const todayBooked = getDateBookingCount(todayStr);
+  const tomorrowBooked = getDateBookingCount(tomorrowStr);
+
+  const bookings = getBookings();
+  const dateCounts: Record<string, number> = {};
+  const monthCounts: Record<string, number> = {};
+
+  bookings.forEach((b) => {
+    if (b.booking_status === 'Cancelled' || b.payment_status === 'Failed') return;
+    const d = b.visit_date || (b.created_at ? b.created_at.split('T')[0] : '');
+    if (d) {
+      dateCounts[d] = (dateCounts[d] || 0) + 1;
+      const m = d.slice(0, 7);
+      monthCounts[m] = (monthCounts[m] || 0) + 1;
+    }
+  });
+
+  const fullyBookedDates = Object.entries(dateCounts)
+    .filter(([_, count]) => count >= DAILY_CAPACITY)
+    .map(([date, count]) => ({ date, count, capacity: DAILY_CAPACITY }));
+
+  const config = getDateConfig();
+
+  return {
+    dailyCapacity: DAILY_CAPACITY,
+    today: {
+      date: todayStr,
+      booked: todayBooked,
+      capacity: DAILY_CAPACITY,
+      remaining: Math.max(0, DAILY_CAPACITY - todayBooked),
+      isFull: todayBooked >= DAILY_CAPACITY,
+      isOpen: isDateOpen(todayStr),
+    },
+    tomorrow: {
+      date: tomorrowStr,
+      booked: tomorrowBooked,
+      capacity: DAILY_CAPACITY,
+      remaining: Math.max(0, DAILY_CAPACITY - tomorrowBooked),
+      isFull: tomorrowBooked >= DAILY_CAPACITY,
+      isOpen: isDateOpen(tomorrowStr),
+    },
+    closedDates: config.closedDates,
+    openedMonths: config.openedMonths,
+    fullyBookedDates,
+    dateCounts,
+    monthCounts,
+    upcomingOpenDates: getNextAvailableOpenDates(todayStr, 7),
+  };
+}
+
 

@@ -78,7 +78,7 @@ export default function Hero({ onNavigate }: HeroProps) {
             </div>
             <div className="flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-volt-500" />
-              <span>Max 50 Slots Daily</span>
+              <span>300 Slots Daily Capacity</span>
             </div>
           </div>
 

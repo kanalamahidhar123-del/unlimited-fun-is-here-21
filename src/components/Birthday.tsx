@@ -186,6 +186,29 @@ export default function Birthday() {
               and the space — you bring the party. Enquire now and our team will
               help you plan the perfect celebration.
             </p>
+
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <span className="px-3 py-1 rounded-full bg-volt-500/10 text-volt-400 text-xs font-semibold border border-volt-500/30">
+                🎂 Dedicated Cake Cutting Zone
+              </span>
+              <span className="px-3 py-1 rounded-full bg-volt-500/10 text-volt-400 text-xs font-semibold border border-volt-500/30">
+                🎈 Customized Birthday Games
+              </span>
+              <span className="px-3 py-1 rounded-full bg-volt-500/10 text-volt-400 text-xs font-semibold border border-volt-500/30">
+                🎵 Party Music &amp; Laser Lights
+              </span>
+            </div>
+
+            <div className="mt-8">
+              <a
+                href={`https://wa.me/91${SITE.whatsapp}?text=${encodeURIComponent('Hi Unlimited Fun! I would like to enquire about celebrating a Birthday Party at your Bhimavaram indoor adventure park.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-green-600 hover:bg-green-500 text-white px-6 py-3 text-sm font-black transition-all hover:scale-105 active:scale-95 shadow-lg shadow-green-600/20"
+              >
+                <span>💬 CHAT ON WHATSAPP FOR BIRTHDAY PACKAGES</span>
+              </a>
+            </div>
           </div>
 
           <div>

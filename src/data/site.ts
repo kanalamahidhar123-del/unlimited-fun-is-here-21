@@ -21,7 +21,7 @@ export const SITE = {
   hoursShort: '9 AM – 10 PM',
   workingDays: 'Open All Days',
   activityCount: '10+',
-  weightLimit: '120 kg',
+  weightLimit: 'Maximum Weight: 80 KG',
   pricing: {
     trampolinePark: {
       title: 'TRAMPOLINE PARK',
@@ -58,16 +58,15 @@ export const SITE = {
 
 export const NAV_LINKS = [
   { label: 'HOME', href: '#home' },
-  { label: 'GAMES', href: '#games' },
-  { label: 'PRICES', href: '#pricing' },
-  { label: 'RFID CARDS', href: '#rfid-cards' },
-  { label: 'OFFERS', href: '#offers' },
-  { label: 'LATEST INFO', href: '#latest-info' },
-  { label: 'BOOKING', href: '#booking' },
-  { label: 'STATUS', href: '#booking' },
-  { label: 'ABOUT', href: '#about' },
-  { label: 'BIRTHDAY', href: '#birthday' },
+  { label: 'GAMES & ACTIVITIES', href: '#games' },
   { label: 'GALLERY', href: '#gallery' },
+  { label: 'PRICING', href: '#pricing' },
+  { label: 'OFFERS', href: '#offers' },
+  { label: 'GROUP BOOKINGS', href: '#groups' },
+  { label: 'BIRTHDAY PARTIES', href: '#birthday' },
+  { label: 'BOOK YOUR SLOT', href: '#booking' },
+  { label: 'ABOUT US', href: '#about' },
+  { label: 'RULES & SAFETY', href: '#rules' },
   { label: 'FAQ', href: '#faq' },
   { label: 'CONTACT', href: '#contact' },
 ];

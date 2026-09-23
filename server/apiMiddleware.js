@@ -21,6 +21,18 @@ import {
   updateAnnouncement,
   deleteAnnouncementById,
 } from './announcementStorage.js';
+import {
+  getDateConfig,
+  isDateOpen,
+  getDateDetails,
+  openMonth as openMonthStorage,
+  closeMonth as closeMonthStorage,
+  setDateStatus as setDateStatusStorage,
+  setBulkDatesStatus,
+  getMonthCalendarView,
+  getNextAvailableOpenDates,
+  getAdminDateSummary,
+} from './dateStorage.js';
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -68,34 +80,141 @@ export function paymentApiMiddleware(env = process.env) {
     const url = req.url ? req.url.split('?')[0] : '';
     const searchParams = req.url && req.url.includes('?') ? new URLSearchParams(req.url.split('?')[1]) : new URLSearchParams();
 
-    // Route: GET /api/capacity - Daily 50 booking capacity status & summary
+    // Route: GET /api/capacity - Daily 300 booking capacity status & summary
     if (url === '/api/capacity' && req.method === 'GET') {
       try {
         const dateQuery = searchParams.get('date');
         if (dateQuery) {
-          const booked = getDateBookingCount(dateQuery);
-          const isFull = isDateFull(dateQuery);
+          const details = getDateDetails(dateQuery);
           sendJson(res, 200, {
             success: true,
             date: dateQuery,
-            capacity: DAILY_CAPACITY,
-            booked,
-            remaining: Math.max(0, DAILY_CAPACITY - booked),
-            isFull,
-            nextAvailableDate: isFull ? getNextAvailableDate(dateQuery) : null,
+            capacity: details.capacity,
+            booked: details.booked,
+            remaining: details.remaining,
+            isOpen: details.isOpen,
+            isFull: details.isFull,
+            status: details.status,
+            nextAvailableDates: details.isFull || !details.isOpen ? getNextAvailableOpenDates(dateQuery) : [],
           });
           return;
         }
 
         const days = parseInt(searchParams.get('days')) || 30;
         const summary = getCapacitySummary(days);
-        const nextAvailable = getNextAvailableDate();
+        const nextAvailable = getNextAvailableOpenDates();
         sendJson(res, 200, {
           success: true,
           capacity: DAILY_CAPACITY,
           summary,
-          nextAvailableDate: nextAvailable,
+          nextAvailableDates: nextAvailable,
         });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: GET /api/booking-dates - Date availability and calendar views
+    if (url === '/api/booking-dates' && req.method === 'GET') {
+      try {
+        const dateQuery = searchParams.get('date');
+        if (dateQuery) {
+          const details = getDateDetails(dateQuery);
+          sendJson(res, 200, { success: true, data: details });
+          return;
+        }
+
+        const year = searchParams.get('year');
+        const month = searchParams.get('month');
+        if (year && month) {
+          const calendarView = getMonthCalendarView(parseInt(year), parseInt(month));
+          sendJson(res, 200, { success: true, data: calendarView });
+          return;
+        }
+
+        const summaryQuery = searchParams.get('summary') === 'true';
+        if (summaryQuery) {
+          const adminSummary = getAdminDateSummary();
+          sendJson(res, 200, { success: true, data: adminSummary });
+          return;
+        }
+
+        const nextAvail = searchParams.get('nextAvailable') === 'true';
+        if (nextAvail) {
+          const start = searchParams.get('startDate') || '';
+          const nextDates = getNextAvailableOpenDates(start);
+          sendJson(res, 200, { success: true, data: nextDates });
+          return;
+        }
+
+        const config = getDateConfig();
+        const adminSummary = getAdminDateSummary();
+        sendJson(res, 200, { success: true, config, summary: adminSummary });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/booking-dates/update - Update individual date status
+    if (url === '/api/booking-dates/update' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.date) {
+          sendJson(res, 400, { success: false, error: 'Date is required' });
+          return;
+        }
+        const updated = setDateStatusStorage(parsed.date, parsed.status || 'OPEN');
+        sendJson(res, 200, { success: true, data: updated });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/booking-dates/open-month - Open entire month for bookings
+    if (url === '/api/booking-dates/open-month' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.yearMonth) {
+          sendJson(res, 400, { success: false, error: 'yearMonth (YYYY-MM) is required' });
+          return;
+        }
+        const config = openMonthStorage(parsed.yearMonth);
+        sendJson(res, 200, { success: true, data: config });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/booking-dates/close-month - Close entire month
+    if (url === '/api/booking-dates/close-month' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.yearMonth) {
+          sendJson(res, 400, { success: false, error: 'yearMonth (YYYY-MM) is required' });
+          return;
+        }
+        const config = closeMonthStorage(parsed.yearMonth);
+        sendJson(res, 200, { success: true, data: config });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/booking-dates/bulk - Bulk update dates
+    if (url === '/api/booking-dates/bulk' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !Array.isArray(parsed.dates)) {
+          sendJson(res, 400, { success: false, error: 'dates array is required' });
+          return;
+        }
+        const config = setBulkDatesStatus(parsed.dates, parsed.status || 'OPEN');
+        sendJson(res, 200, { success: true, data: config });
       } catch (err) {
         sendJson(res, 500, { success: false, error: err.message });
       }
@@ -177,7 +296,7 @@ export function paymentApiMiddleware(env = process.env) {
       return;
     }
 
-    // Route: POST /api/bookings - Create and save new customer booking (with 50 capacity check)
+    // Route: POST /api/bookings - Create and save new customer booking (with 300 capacity and date open checks)
     if (url === '/api/bookings' && req.method === 'POST') {
       try {
         const { parsed } = await parseJsonBody(req);
@@ -186,14 +305,24 @@ export function paymentApiMiddleware(env = process.env) {
           return;
         }
 
-        // Enforce 50 daily capacity check
+        // Check if date is open
+        if (parsed.visit_date && !isDateOpen(parsed.visit_date)) {
+          sendJson(res, 400, {
+            success: false,
+            error: 'DATE_CLOSED',
+            message: 'This date is currently not open for bookings. Please choose another available date.',
+          });
+          return;
+        }
+
+        // Enforce 300 daily capacity check
         if (parsed.visit_date && isDateFull(parsed.visit_date)) {
-          const nextDate = getNextAvailableDate(parsed.visit_date);
+          const nextDates = getNextAvailableOpenDates(parsed.visit_date);
           sendJson(res, 400, {
             success: false,
             error: 'DATE_FULL',
-            message: "Today's tickets are fully booked! Maximum daily capacity of 50 bookings has been reached.",
-            nextAvailableDate: nextDate,
+            message: 'Today’s bookings are completely filled. Please try another available date.',
+            nextAvailableDates: nextDates,
           });
           return;
         }
