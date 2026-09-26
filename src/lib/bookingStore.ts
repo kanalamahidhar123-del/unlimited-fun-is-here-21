@@ -362,17 +362,17 @@ export async function createBooking(
     }
   }
 
-  // Sync to Supabase if configured (client side)
+  // 1. Primary Source of Truth: Insert into Supabase (Client-Side Anon Key)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const isConfigured = supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co');
   if (isConfigured) {
     try {
       const guestCount = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
-      const catVal = newBooking.category === 'Children' ? 'Children' : 'Adult';
-      const durVal = newBooking.duration === '2 Hours' ? '2 Hours' : '1 Hour';
+      const catVal = newBooking.category || 'Trampoline Park';
+      const durVal = newBooking.duration || '1 Hour';
       const statusVal = newBooking.booking_status === 'Confirmed' ? 'confirmed' : newBooking.booking_status === 'Cancelled' ? 'cancelled' : 'pending';
 
-      await supabase.from('bookings').insert({
+      const { error: sbError } = await supabase.from('bookings').insert({
         full_name: newBooking.full_name,
         mobile_number: newBooking.mobile_number,
         email: newBooking.email || null,
@@ -381,13 +381,16 @@ export async function createBooking(
         number_of_people: guestCount,
         category: catVal,
         duration: durVal,
-        special_request: `[${newBooking.booking_id}] Method: ${newBooking.payment_method} | Status: ${newBooking.booking_status} | ${newBooking.special_request || ''}`,
+        special_request: newBooking.special_request ? `[${newBooking.booking_id}] ${newBooking.special_request}` : `[${newBooking.booking_id}]`,
         agreed_to_terms: true,
         status: statusVal,
-        created_at: newBooking.created_at,
       });
+
+      if (sbError) {
+        console.error('Supabase booking insert error:', sbError);
+      }
     } catch (syncErr) {
-      console.warn('Supabase remote sync notice:', syncErr);
+      console.warn('Supabase remote sync exception:', syncErr);
     }
   }
 

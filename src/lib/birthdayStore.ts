@@ -106,11 +106,11 @@ export async function createBirthdayEnquiry(
     // ignore
   }
 
-  // Sync to Supabase table
+  // 1. Primary Source of Truth: Insert into Supabase table (Client-Side Anon Key)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   if (supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co')) {
     try {
-      await supabase.from('birthday_enquiries').insert({
+      const { error: sbError } = await supabase.from('birthday_enquiries').insert({
         name: newEnquiry.name,
         phone: newEnquiry.phone,
         email: newEnquiry.email || null,
@@ -119,8 +119,11 @@ export async function createBirthdayEnquiry(
         message: newEnquiry.message ? `[${newEnquiry.package_name}] ${newEnquiry.message}` : `Package: ${newEnquiry.package_name}`,
         status: 'pending',
       });
+      if (sbError) {
+        console.error('Supabase birthday enquiry insert error:', sbError);
+      }
     } catch (sErr) {
-      console.warn('Supabase birthday enquiry sync notice:', sErr);
+      console.warn('Supabase birthday enquiry sync exception:', sErr);
     }
   }
 

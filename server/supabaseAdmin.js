@@ -167,17 +167,15 @@ export async function insertSupabaseBooking(booking, env = process.env) {
       status: booking.booking_status === 'Confirmed' ? 'confirmed' : booking.booking_status === 'Cancelled' ? 'cancelled' : 'pending',
     };
 
-    const { data, error } = await client
+    const { error } = await client
       .from('bookings')
-      .insert(payload)
-      .select()
-      .single();
+      .insert(payload);
 
     if (error) {
       console.warn('Supabase insert booking notice:', error.message);
       return null;
     }
-    return data;
+    return payload;
   } catch (err) {
     console.warn('Supabase insert booking exception:', err.message);
     return null;
@@ -202,17 +200,15 @@ export async function insertSupabaseBirthdayEnquiry(enquiry, env = process.env) 
       status: enquiry.status || 'pending',
     };
 
-    const { data, error } = await client
+    const { error } = await client
       .from('birthday_enquiries')
-      .insert(payload)
-      .select()
-      .single();
+      .insert(payload);
 
     if (error) {
       console.warn('Supabase insert birthday enquiry notice:', error.message);
       return null;
     }
-    return data;
+    return payload;
   } catch (err) {
     console.warn('Supabase insert birthday enquiry exception:', err.message);
     return null;

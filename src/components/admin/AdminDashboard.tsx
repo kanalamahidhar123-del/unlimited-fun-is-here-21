@@ -352,80 +352,69 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {tab === 'overview' && (
           <div className="space-y-8">
             {/* Stat Cards Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              {/* Total Revenue (Actual paid amount of successful payments only) */}
-              <div className="col-span-2 sm:col-span-3 lg:col-span-2 rounded-2xl bg-gradient-to-br from-ink-900 via-ink-900 to-volt-950/40 border border-volt-500/40 p-6 flex flex-col justify-between shadow-xl">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Total Bookings */}
+              <div className="rounded-2xl bg-gradient-to-br from-ink-900 via-ink-900 to-volt-950/30 border border-volt-500/40 p-5 flex flex-col justify-between shadow-xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-volt-400">
-                    Verified Total Revenue
+                  <span className="text-xs font-bold text-volt-400 uppercase tracking-wide">
+                    Total Bookings
                   </span>
                   <div className="h-8 w-8 rounded-full bg-volt-500/10 flex items-center justify-center text-volt-400">
-                    <IndianRupee className="h-4 w-4" />
+                    <CalendarCheck2 className="h-4 w-4" />
                   </div>
                 </div>
-                <div className="my-3">
-                  <span className="font-display font-black text-3xl sm:text-4xl text-white">
-                    ₹{stats.totalRevenue.toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <p className="text-[11px] text-ink-400">
-                  Calculated from <strong>{stats.successfulPayments} verified actual payments</strong>. Pending & unverified amounts are not counted.
-                </p>
-              </div>
-
-              {/* Total Bookings */}
-              <div className="rounded-2xl bg-ink-900 border border-ink-800 p-5 flex flex-col justify-between shadow-sm">
-                <span className="text-xs font-bold text-ink-400 uppercase tracking-wide">
-                  Total Bookings
-                </span>
-                <span className="font-display font-black text-2xl sm:text-3xl text-white my-2">
+                <span className="font-display font-black text-3xl sm:text-4xl text-white my-3">
                   {stats.totalBookings}
                 </span>
-                <span className="text-[11px] text-ink-400">{stats.todayBookings} today</span>
+                <span className="text-[11px] text-ink-400">{stats.todayBookings} scheduled for today</span>
               </div>
 
-              {/* Pending Payments (Yellow) */}
+              {/* Pending Bookings (Yellow) */}
               <div className="rounded-2xl bg-ink-900 border border-amber-500/30 p-5 flex flex-col justify-between shadow-sm">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" /> Pending Verification
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" /> Pending Bookings
+                  </span>
+                  <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                </div>
+                <span className="font-display font-black text-3xl sm:text-4xl text-amber-400 my-3">
+                  {bookings.filter((b) => b.booking_status === 'Pending' || b.booking_status === 'Pending Payment' || b.booking_status === 'Registration Received').length}
                 </span>
-                <span className="font-display font-black text-2xl sm:text-3xl text-amber-400 my-2">
-                  {stats.pendingPayments}
-                </span>
-                <span className="text-[11px] text-ink-400">Requires review</span>
+                <span className="text-[11px] text-ink-400">Awaiting confirmation</span>
               </div>
 
-              {/* Successful Payments (Green) */}
+              {/* Confirmed Bookings (Green) */}
               <div className="rounded-2xl bg-ink-900 border border-emerald-500/30 p-5 flex flex-col justify-between shadow-sm">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Verified Successful
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Confirmed Bookings
+                  </span>
+                  <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </div>
+                </div>
+                <span className="font-display font-black text-3xl sm:text-4xl text-emerald-400 my-3">
+                  {stats.confirmedBookings}
                 </span>
-                <span className="font-display font-black text-2xl sm:text-3xl text-emerald-400 my-2">
-                  {stats.successfulPayments}
-                </span>
-                <span className="text-[11px] text-ink-400">{stats.confirmedBookings} confirmed</span>
+                <span className="text-[11px] text-ink-400">Verified & Approved</span>
               </div>
 
-              {/* Failed / Rejected Payments (Red) */}
-              <div className="rounded-2xl bg-ink-900 border border-flame-500/30 p-5 flex flex-col justify-between shadow-sm">
-                <span className="text-xs font-bold text-flame-400 uppercase tracking-wide flex items-center gap-1.5">
-                  <XCircle className="h-3.5 w-3.5" /> Rejected / Failed
+              {/* Birthday Enquiries */}
+              <div className="rounded-2xl bg-ink-900 border border-cyan-500/30 p-5 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-1.5">
+                    <Cake className="h-3.5 w-3.5 text-cyan-400" /> Birthday Enquiries
+                  </span>
+                  <div className="h-8 w-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                    <Cake className="h-4 w-4" />
+                  </div>
+                </div>
+                <span className="font-display font-black text-3xl sm:text-4xl text-white my-3">
+                  {birthdayCount}
                 </span>
-                <span className="font-display font-black text-2xl sm:text-3xl text-flame-400 my-2">
-                  {stats.failedPayments}
-                </span>
-                <span className="text-[11px] text-ink-400">{stats.cancelledBookings} cancelled</span>
-              </div>
-
-              {/* Total RFID Bookings */}
-              <div className="rounded-2xl bg-ink-900 border border-ink-800 p-5 flex flex-col justify-between shadow-sm">
-                <span className="text-xs font-bold text-ink-400 uppercase tracking-wide flex items-center gap-1.5">
-                  <CreditCard className="h-3.5 w-3.5 text-volt-500" /> RFID Passes
-                </span>
-                <span className="font-display font-black text-2xl sm:text-3xl text-white my-2">
-                  {stats.totalRfidBookings}
-                </span>
-                <span className="text-[11px] text-ink-400">Basic & Premium</span>
+                <span className="text-[11px] text-ink-400">Party celebration requests</span>
               </div>
             </div>
 
@@ -650,12 +639,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <tr>
                       <th className="px-5 py-4">Booking ID</th>
                       <th className="px-5 py-4">Customer</th>
-                      <th className="px-5 py-4">Package / Category</th>
-                      <th className="px-5 py-4">Date & Time</th>
-                      <th className="px-5 py-4">Payment Method</th>
-                      <th className="px-5 py-4">Booking Amount</th>
-                      <th className="px-5 py-4">Actual Paid Amount</th>
-                      <th className="px-5 py-4">Payment / UTR Ref</th>
+                      <th className="px-5 py-4">Category & Duration</th>
+                      <th className="px-5 py-4">People</th>
+                      <th className="px-5 py-4">Visit Date & Time</th>
+                      <th className="px-5 py-4">Special Request</th>
                       <th className="px-5 py-4">Status</th>
                       <th className="px-5 py-4">Actions</th>
                     </tr>
@@ -663,18 +650,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <tbody className="divide-y divide-ink-800/60">
                     {filteredBookings.length === 0 ? (
                       <tr>
-                        <td colSpan={10} className="px-6 py-12 text-center text-ink-500">
+                        <td colSpan={8} className="px-6 py-12 text-center text-ink-500">
                           No matching bookings found.
                         </td>
                       </tr>
                     ) : (
                       filteredBookings.map((b, idx) => {
-                        const bookingAmount = Number(b.booking_amount ?? b.total_amount ?? 0) || 0;
-                        const paidAmount = Number(b.paid_amount ?? 0) || 0;
-                        const isRegistration = b.payment_method === 'Registration Only' || b.payment_status === 'Not Required';
-                        const isUnderpaid = !isRegistration && paidAmount < bookingAmount;
-                        const isRazorpay = b.payment_method === 'Razorpay' || Boolean(b.razorpay_payment_id);
                         const rowKey = b.id || b.booking_id || `booking-row-${idx}`;
+                        const guestCount = (b.adults || 0) + (b.children || 0) || b.quantity || 1;
+                        const isConfirmed = b.booking_status === 'Confirmed' || b.payment_status === 'Successful';
+                        const isCancelled = b.booking_status === 'Cancelled' || b.payment_status === 'Failed';
 
                         return (
                           <tr key={rowKey} className="hover:bg-ink-800/30 transition-colors">
@@ -684,7 +669,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 {b.booking_id || 'N/A'}
                               </span>
                               <div className="text-[10px] text-ink-500 mt-1">
-                                {new Date(b.created_at || Date.now()).toLocaleDateString()}
+                                {new Date(b.created_at || Date.now()).toLocaleDateString('en-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })}
                               </div>
                             </td>
 
@@ -699,11 +688,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
                             {/* Package */}
                             <td className="px-5 py-4">
-                              <div className="font-semibold text-ink-200">{b.category || 'Adult'}</div>
+                              <div className="font-semibold text-ink-200">{b.category || 'Trampoline Park'}</div>
                               <div className="text-xs text-ink-400">
-                                {b.duration && b.duration !== 'N/A' && `${b.duration} · `}
-                                {b.quantity || 1} {b.type === 'RFID' ? 'Cards' : 'Guests'}
+                                {b.duration && b.duration !== 'N/A' ? b.duration : '1 Hour'}
                               </div>
+                            </td>
+
+                            {/* People */}
+                            <td className="px-5 py-4 whitespace-nowrap">
+                              <span className="font-bold text-white">{guestCount}</span>
+                              <span className="text-xs text-ink-400 ml-1">Guests</span>
                             </td>
 
                             {/* Visit Slot */}
@@ -712,70 +706,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               <div className="text-xs text-ink-400">{b.preferred_time || 'N/A'}</div>
                             </td>
 
-                            {/* Method */}
-                            <td className="px-5 py-4 whitespace-nowrap">
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                                isRegistration
-                                  ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30'
-                                  : isRazorpay
-                                  ? 'bg-volt-500/10 text-volt-400 border-volt-500/30'
-                                  : 'bg-ink-800 text-ink-300 border-ink-700'
-                              }`}>
-                                {isRegistration ? '📝 Registration Only' : isRazorpay ? '⚡ Razorpay' : '📱 UPI Manual'}
-                              </span>
-                            </td>
-
-                            {/* Booking Amount (Expected) */}
-                            <td className="px-5 py-4 whitespace-nowrap">
-                              <span className="font-semibold text-ink-300">
-                                ₹{bookingAmount.toLocaleString('en-IN')}
-                              </span>
-                            </td>
-
-                            {/* Actual Paid Amount */}
-                            <td className="px-5 py-4 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <span className={`font-display font-black text-sm sm:text-base ${
-                                  isRegistration ? 'text-ink-400' : isUnderpaid ? 'text-amber-400' : 'text-volt-400'
-                                }`}>
-                                  ₹{paidAmount.toLocaleString('en-IN')}
-                                </span>
-                                {isUnderpaid && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold" title={`Short by ₹${bookingAmount - paidAmount}`}>
-                                    Short
-                                  </span>
-                                )}
+                            {/* Special Request */}
+                            <td className="px-5 py-4 max-w-[180px]">
+                              <div className="text-xs text-ink-300 truncate" title={b.special_request || 'None'}>
+                                {b.special_request || '—'}
                               </div>
                             </td>
 
-                            {/* UTR / Razorpay ID */}
-                            <td className="px-5 py-4 whitespace-nowrap font-mono text-xs text-ink-300">
-                              <span className="bg-ink-950 px-2 py-1 rounded border border-ink-800 max-w-[140px] truncate inline-block">
-                                {b.razorpay_payment_id || b.utr || 'N/A'}
-                              </span>
-                            </td>
-
-                            {/* Payment Status Badge */}
+                            {/* Status Badge */}
                             <td className="px-5 py-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                                  b.payment_status === 'Successful'
+                                  isConfirmed
                                     ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                    : b.payment_status === 'Not Required'
-                                    ? 'bg-ink-800 text-ink-300 border border-ink-700'
-                                    : b.payment_status === 'Failed'
+                                    : isCancelled
                                     ? 'bg-flame-500/10 text-flame-400 border border-flame-500/30'
                                     : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
                                 }`}
                               >
-                                {b.payment_status === 'Successful' && '🟢 Successful'}
-                                {b.payment_status === 'Not Required' && '⚪ Not Required'}
-                                {b.payment_status === 'Failed' && '🔴 Failed'}
-                                {b.payment_status === 'Pending Verification' && '🟡 Pending'}
+                                {isConfirmed ? '🟢 Confirmed' : isCancelled ? '🔴 Cancelled' : '🟡 Pending'}
                               </span>
-                              <div className="text-[10px] text-ink-400 mt-1">
-                                Booking: <span className="font-semibold text-ink-300">{b.booking_status}</span>
-                              </div>
                             </td>
 
                             {/* Actions */}
@@ -789,16 +739,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                   <Eye className="h-4 w-4" />
                                 </button>
 
-                                {b.booking_status !== 'Confirmed' && (
+                                {!isConfirmed && (
                                   <button
                                     onClick={() => handleConfirmPayment(b.id)}
-                                    title="Verify & Confirm Booking"
+                                    title="Confirm Booking"
                                     className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-ink-950 text-emerald-400 border border-emerald-500/30 transition-all"
                                   >
                                     <CheckCircle2 className="h-4 w-4" />
                                   </button>
                                 )}
-                                {b.booking_status !== 'Cancelled' && (
+                                {!isCancelled && (
                                   <button
                                     onClick={() => handleRejectPayment(b.id)}
                                     title="Cancel / Reject Booking"
