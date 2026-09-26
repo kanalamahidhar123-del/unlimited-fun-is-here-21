@@ -78,11 +78,38 @@ export function getBookings(): BookingRecord[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     const list: BookingRecord[] = raw ? JSON.parse(raw) : [];
     return list
-      .map((b) => ({
-        ...b,
-        booking_amount: b.booking_amount ?? b.total_amount ?? 0,
-        paid_amount: b.paid_amount ?? 0,
+      .filter((b) => b && (b.booking_id || b.id || b.full_name))
+      .map((b, idx) => ({
+        id: b.id || b.booking_id || `uf-bk-${idx}-${Date.now()}`,
+        booking_id: b.booking_id || (b.id ? `UF-TR-${String(b.id).substring(0, 5).toUpperCase()}` : `UF-TR-${idx + 1000}`),
+        type: b.type || 'Trampoline',
+        full_name: b.full_name || 'Guest',
+        mobile_number: b.mobile_number || 'N/A',
+        whatsapp_number: b.whatsapp_number || b.mobile_number || 'N/A',
+        email: b.email || null,
+        visit_date: b.visit_date || (b.created_at ? b.created_at.split('T')[0] : 'N/A'),
+        preferred_time: b.preferred_time || 'N/A',
+        adults: Number(b.adults) || 1,
+        children: Number(b.children) || 0,
+        category: b.category || 'Adult',
+        duration: b.duration || '1 Hour',
+        quantity: Number(b.quantity) || 1,
+        rfid_card_type: b.rfid_card_type || null,
+        price_per_unit: Number(b.price_per_unit) || 0,
+        booking_amount: Number(b.booking_amount ?? b.total_amount ?? 0) || 0,
+        paid_amount: Number(b.paid_amount ?? 0) || 0,
+        total_amount: Number(b.booking_amount ?? b.total_amount ?? 0) || 0,
+        utr: b.utr || 'N/A',
         payment_method: b.payment_method ?? 'Registration Only',
+        razorpay_order_id: b.razorpay_order_id || null,
+        razorpay_payment_id: b.razorpay_payment_id || null,
+        razorpay_signature: b.razorpay_signature || null,
+        razorpay_signature_verified: Boolean(b.razorpay_signature_verified),
+        payment_verified_at: b.payment_verified_at || null,
+        payment_status: b.payment_status || 'Not Required',
+        booking_status: b.booking_status || 'Registration Received',
+        special_request: b.special_request || null,
+        created_at: b.created_at || new Date().toISOString(),
       }))
       .sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -104,18 +131,21 @@ export async function fetchBookingsFromServer(): Promise<BookingRecord[]> {
         
         // Merge server and local bookings without duplicates
         const map = new Map<string, BookingRecord>();
-        serverList.forEach((b) => map.set(b.booking_id || b.id, b));
+        serverList.forEach((b) => {
+          const key = b.booking_id || b.id;
+          if (key) map.set(key, b);
+        });
         localList.forEach((b) => {
           const key = b.booking_id || b.id;
-          if (!map.has(key)) map.set(key, b);
+          if (key && !map.has(key)) map.set(key, b);
         });
 
         const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
         );
 
         saveBookings(merged);
-        return merged;
+        return getBookings();
       }
     }
   } catch (e) {
@@ -332,22 +362,29 @@ export async function createBooking(
     }
   }
 
-  // Sync to Supabase if configured
+  // Sync to Supabase if configured (client side)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const isConfigured = supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co');
   if (isConfigured) {
     try {
+      const guestCount = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
+      const catVal = newBooking.category === 'Children' ? 'Children' : 'Adult';
+      const durVal = newBooking.duration === '2 Hours' ? '2 Hours' : '1 Hour';
+      const statusVal = newBooking.booking_status === 'Confirmed' ? 'confirmed' : newBooking.booking_status === 'Cancelled' ? 'cancelled' : 'pending';
+
       await supabase.from('bookings').insert({
         full_name: newBooking.full_name,
         mobile_number: newBooking.mobile_number,
-        email: newBooking.email,
+        email: newBooking.email || null,
         visit_date: newBooking.visit_date,
         preferred_time: newBooking.preferred_time,
-        number_of_people: (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity,
-        category: newBooking.category,
-        duration: newBooking.duration,
+        number_of_people: guestCount,
+        category: catVal,
+        duration: durVal,
         special_request: `[${newBooking.booking_id}] Method: ${newBooking.payment_method} | Status: ${newBooking.booking_status} | ${newBooking.special_request || ''}`,
         agreed_to_terms: true,
+        status: statusVal,
+        created_at: newBooking.created_at,
       });
     } catch (syncErr) {
       console.warn('Supabase remote sync notice:', syncErr);
@@ -356,13 +393,17 @@ export async function createBooking(
 
   // Sync to Central Server Backend API
   try {
-    fetch('/api/bookings', {
+    const res = await fetch('/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newBooking),
-    }).catch((e) => console.warn('Server API booking dispatch notice:', e));
+    });
+    if (res.ok) {
+      // Re-fetch to guarantee synchronized state
+      await fetchBookingsFromServer();
+    }
   } catch (e) {
-    // ignore
+    console.warn('Server API booking dispatch notice:', e);
   }
 
   return newBooking;
@@ -502,21 +543,20 @@ export function updateBookingStatus(
   return true;
 }
 
-export function getDashboardStats() {
-  const bookings = getBookings();
+export function getDashboardStats(customBookings?: BookingRecord[]) {
+  const bookings = customBookings || getBookings();
   const todayStr = new Date().toISOString().split('T')[0];
 
   const totalBookings = bookings.length;
-  const todayBookings = bookings.filter((b) => b.created_at.startsWith(todayStr) || b.visit_date === todayStr).length;
+  const todayBookings = bookings.filter((b) => b.created_at?.startsWith(todayStr) || b.visit_date === todayStr).length;
   const pendingPayments = bookings.filter((b) => b.payment_status === 'Pending Verification').length;
-  const successfulPayments = bookings.filter((b) => b.payment_status === 'Successful').length;
-  const failedPayments = bookings.filter((b) => b.payment_status === 'Failed').length;
+  const successfulPayments = bookings.filter((b) => b.payment_status === 'Successful' || b.booking_status === 'Confirmed').length;
+  const failedPayments = bookings.filter((b) => b.payment_status === 'Failed' || b.booking_status === 'Cancelled').length;
   const confirmedBookings = bookings.filter((b) => b.booking_status === 'Confirmed').length;
   const cancelledBookings = bookings.filter((b) => b.booking_status === 'Cancelled').length;
   const totalRfidBookings = bookings.filter((b) => b.type === 'RFID').length;
 
-  // IMPORTANT: Revenue strictly sums the actual paid_amount for bookings where payment_status === 'Successful'
-  // Booking Amount is NOT counted as revenue!
+  // Revenue strictly sums the actual paid_amount for bookings where payment_status === 'Successful'
   const totalRevenue = bookings
     .filter((b) => b.payment_status === 'Successful')
     .reduce((sum, b) => sum + (Number(b.paid_amount) || 0), 0);

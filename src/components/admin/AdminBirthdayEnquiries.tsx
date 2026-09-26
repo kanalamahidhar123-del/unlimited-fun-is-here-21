@@ -261,13 +261,13 @@ export default function AdminBirthdayEnquiries({ onNotify }: AdminBirthdayEnquir
                   </td>
                 </tr>
               ) : (
-                filtered.map((item) => {
+                filtered.map((item, idx) => {
                   const whatsappMsg = encodeURIComponent(
                     `Hi ${item.name}! Thank you for enquiring about a Birthday Party at Unlimited Fun Bhimavaram. We'd love to help organize your celebration!`
                   );
 
                   return (
-                    <tr key={item.id} className="hover:bg-ink-800/40 transition-colors">
+                    <tr key={item.id || `bday-row-${idx}`} className="hover:bg-ink-800/40 transition-colors">
                       {/* Customer Info */}
                       <td className="px-5 py-4">
                         <div className="font-bold text-white text-base">{item.name}</div>

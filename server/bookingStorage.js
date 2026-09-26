@@ -48,16 +48,37 @@ export function saveAllBookings(bookings) {
 export function addBooking(booking) {
   ensureDbFile();
   const list = getAllBookings();
-  const filtered = list.filter((b) => b.booking_id !== booking.booking_id && b.id !== booking.id);
-  filtered.unshift(booking);
+  const bookingId =
+    booking.booking_id ||
+    (booking.type === 'RFID' ? 'UF-RFID-' : 'UF-TR-') + Math.floor(10000 + Math.random() * 90000);
+  const id =
+    booking.id ||
+    (typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'UF-BK-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7));
+
+  const fullBooking = {
+    ...booking,
+    id,
+    booking_id: bookingId,
+    created_at: booking.created_at || new Date().toISOString(),
+  };
+
+  const filtered = list.filter((b) => {
+    if (fullBooking.booking_id && b.booking_id && b.booking_id === fullBooking.booking_id) return false;
+    if (fullBooking.id && b.id && b.id === fullBooking.id) return false;
+    return true;
+  });
+
+  filtered.unshift(fullBooking);
   saveAllBookings(filtered);
-  return booking;
+  return fullBooking;
 }
 
 export function updateBooking(id, updates) {
   ensureDbFile();
   const list = getAllBookings();
-  const index = list.findIndex((b) => b.id === id || b.booking_id === id);
+  const index = list.findIndex((b) => (b.id && b.id === id) || (b.booking_id && b.booking_id === id));
   if (index === -1) return null;
 
   list[index] = { ...list[index], ...updates };
@@ -68,7 +89,11 @@ export function updateBooking(id, updates) {
 export function deleteBookingById(id) {
   ensureDbFile();
   const list = getAllBookings();
-  const filtered = list.filter((b) => b.id !== id && b.booking_id !== id);
+  const filtered = list.filter((b) => {
+    if (b.id && b.id === id) return false;
+    if (b.booking_id && b.booking_id === id) return false;
+    return true;
+  });
   if (filtered.length === list.length) return false;
   saveAllBookings(filtered);
   return true;

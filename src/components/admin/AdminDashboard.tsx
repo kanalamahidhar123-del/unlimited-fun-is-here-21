@@ -454,27 +454,31 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {bookings.slice(0, 8).map((b) => {
+                  {bookings.slice(0, 8).map((b, idx) => {
+                    const bookingAmount = Number(b.booking_amount ?? b.total_amount ?? 0) || 0;
+                    const paidAmount = Number(b.paid_amount ?? 0) || 0;
                     const isRegistration = b.payment_method === 'Registration Only' || b.payment_status === 'Not Required';
-                    const isUnderpaid = !isRegistration && b.paid_amount < b.booking_amount;
+                    const isUnderpaid = !isRegistration && paidAmount < bookingAmount;
+                    const itemKey = b.id || b.booking_id || `recent-bk-${idx}`;
+
                     return (
                       <div
-                        key={b.id}
+                        key={itemKey}
                         className="p-4 rounded-2xl bg-ink-950/60 border border-ink-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-ink-700 transition-all"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-xs font-bold text-volt-400 bg-volt-500/10 px-2 py-0.5 rounded border border-volt-500/30">
-                              {b.booking_id}
+                              {b.booking_id || 'N/A'}
                             </span>
-                            <span className="text-xs font-bold text-white">{b.full_name}</span>
-                            <span className="text-xs text-ink-400">({b.mobile_number})</span>
+                            <span className="text-xs font-bold text-white">{b.full_name || 'Guest'}</span>
+                            <span className="text-xs text-ink-400">({b.mobile_number || 'N/A'})</span>
                             {b.email && (
                               <span className="text-xs text-ink-500 hidden md:inline">· {b.email}</span>
                             )}
                           </div>
                           <div className="text-xs text-ink-400">
-                            {b.category} {b.duration !== 'N/A' && `(${b.duration})`} · {b.quantity} {b.type === 'RFID' ? 'Cards' : 'Guests'} · {b.visit_date} at {b.preferred_time}
+                            {b.category} {b.duration && b.duration !== 'N/A' && `(${b.duration})`} · {b.quantity || 1} {b.type === 'RFID' ? 'Cards' : 'Guests'} · {b.visit_date} at {b.preferred_time}
                           </div>
                           {b.special_request && (
                             <div className="text-[11px] text-ink-400 italic">
@@ -492,10 +496,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <div className="text-[10px] text-ink-500">
-                              Booking: ₹{b.booking_amount.toLocaleString('en-IN')}
+                              Booking: ₹{bookingAmount.toLocaleString('en-IN')}
                             </div>
                             <div className={`font-display font-black text-lg ${isRegistration ? 'text-ink-400' : 'text-volt-400'} flex items-center justify-end gap-1`}>
-                              <span>{isRegistration ? 'Registration Only' : `Paid: ₹${b.paid_amount.toLocaleString('en-IN')}`}</span>
+                              <span>{isRegistration ? 'Registration Only' : `Paid: ₹${paidAmount.toLocaleString('en-IN')}`}</span>
                               {isUnderpaid && (
                                 <span title="Underpaid" className="text-xs text-amber-400">⚠️</span>
                               )}
@@ -664,26 +668,30 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </td>
                       </tr>
                     ) : (
-                      filteredBookings.map((b) => {
+                      filteredBookings.map((b, idx) => {
+                        const bookingAmount = Number(b.booking_amount ?? b.total_amount ?? 0) || 0;
+                        const paidAmount = Number(b.paid_amount ?? 0) || 0;
                         const isRegistration = b.payment_method === 'Registration Only' || b.payment_status === 'Not Required';
-                        const isUnderpaid = !isRegistration && b.paid_amount < b.booking_amount;
+                        const isUnderpaid = !isRegistration && paidAmount < bookingAmount;
                         const isRazorpay = b.payment_method === 'Razorpay' || Boolean(b.razorpay_payment_id);
+                        const rowKey = b.id || b.booking_id || `booking-row-${idx}`;
+
                         return (
-                          <tr key={b.id} className="hover:bg-ink-800/30 transition-colors">
+                          <tr key={rowKey} className="hover:bg-ink-800/30 transition-colors">
                             {/* Booking ID */}
                             <td className="px-5 py-4 whitespace-nowrap">
                               <span className="font-mono text-xs font-bold text-volt-400 bg-volt-500/10 px-2 py-0.5 rounded border border-volt-500/30">
-                                {b.booking_id}
+                                {b.booking_id || 'N/A'}
                               </span>
                               <div className="text-[10px] text-ink-500 mt-1">
-                                {new Date(b.created_at).toLocaleDateString()}
+                                {new Date(b.created_at || Date.now()).toLocaleDateString()}
                               </div>
                             </td>
 
                             {/* Customer Details */}
                             <td className="px-5 py-4">
-                              <div className="font-bold text-white">{b.full_name}</div>
-                              <div className="text-xs text-ink-400">{b.mobile_number}</div>
+                              <div className="font-bold text-white">{b.full_name || 'Guest'}</div>
+                              <div className="text-xs text-ink-400">{b.mobile_number || 'N/A'}</div>
                               {b.email && (
                                 <div className="text-[11px] text-ink-500 truncate max-w-[140px]">{b.email}</div>
                               )}
@@ -691,17 +699,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
                             {/* Package */}
                             <td className="px-5 py-4">
-                              <div className="font-semibold text-ink-200">{b.category}</div>
+                              <div className="font-semibold text-ink-200">{b.category || 'Adult'}</div>
                               <div className="text-xs text-ink-400">
-                                {b.duration !== 'N/A' && `${b.duration} · `}
-                                {b.quantity} {b.type === 'RFID' ? 'Cards' : 'Guests'}
+                                {b.duration && b.duration !== 'N/A' && `${b.duration} · `}
+                                {b.quantity || 1} {b.type === 'RFID' ? 'Cards' : 'Guests'}
                               </div>
                             </td>
 
                             {/* Visit Slot */}
                             <td className="px-5 py-4 whitespace-nowrap">
-                              <div className="font-medium text-ink-200">{b.visit_date}</div>
-                              <div className="text-xs text-ink-400">{b.preferred_time}</div>
+                              <div className="font-medium text-ink-200">{b.visit_date || 'N/A'}</div>
+                              <div className="text-xs text-ink-400">{b.preferred_time || 'N/A'}</div>
                             </td>
 
                             {/* Method */}
@@ -720,7 +728,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             {/* Booking Amount (Expected) */}
                             <td className="px-5 py-4 whitespace-nowrap">
                               <span className="font-semibold text-ink-300">
-                                ₹{b.booking_amount.toLocaleString('en-IN')}
+                                ₹{bookingAmount.toLocaleString('en-IN')}
                               </span>
                             </td>
 
@@ -730,10 +738,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                                 <span className={`font-display font-black text-sm sm:text-base ${
                                   isRegistration ? 'text-ink-400' : isUnderpaid ? 'text-amber-400' : 'text-volt-400'
                                 }`}>
-                                  ₹{b.paid_amount.toLocaleString('en-IN')}
+                                  ₹{paidAmount.toLocaleString('en-IN')}
                                 </span>
                                 {isUnderpaid && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold" title={`Short by ₹${b.booking_amount - b.paid_amount}`}>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold" title={`Short by ₹${bookingAmount - paidAmount}`}>
                                     Short
                                   </span>
                                 )}

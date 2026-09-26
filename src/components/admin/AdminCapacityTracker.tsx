@@ -189,9 +189,9 @@ export default function AdminCapacityTracker({
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-800">
-                {selectedDateBookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-ink-800/30 transition-colors">
-                    <td className="px-4 py-3 font-mono font-bold text-volt-400">{b.booking_id}</td>
+                {selectedDateBookings.map((b, idx) => (
+                  <tr key={b.id || b.booking_id || `cap-bk-${idx}`} className="hover:bg-ink-800/30 transition-colors">
+                    <td className="px-4 py-3 font-mono font-bold text-volt-400">{b.booking_id || 'N/A'}</td>
                     <td className="px-4 py-3 font-semibold text-white">{b.full_name}</td>
                     <td className="px-4 py-3 text-ink-300">{b.mobile_number}</td>
                     <td className="px-4 py-3 text-ink-200">{b.preferred_time}</td>

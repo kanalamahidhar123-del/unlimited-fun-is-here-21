@@ -31,9 +31,11 @@ export default function BookingDetailsModal({
   onReject,
   onDelete,
 }: ModalProps) {
+  const bookingAmount = Number(booking.booking_amount ?? booking.total_amount ?? 0) || 0;
+  const paidAmount = Number(booking.paid_amount ?? 0) || 0;
   const isRegistration = booking.payment_method === 'Registration Only' || booking.payment_status === 'Not Required';
-  const isUnderpaid = !isRegistration && booking.paid_amount < booking.booking_amount;
-  const difference = booking.booking_amount - booking.paid_amount;
+  const isUnderpaid = !isRegistration && paidAmount < bookingAmount;
+  const difference = Math.max(0, bookingAmount - paidAmount);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -42,10 +44,10 @@ export default function BookingDetailsModal({
         <div className="flex items-center justify-between px-6 py-5 border-b border-ink-800 bg-ink-950/60">
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-black text-volt-400 bg-volt-500/10 px-3 py-1 rounded-lg border border-volt-500/30">
-              {booking.booking_id}
+              {booking.booking_id || 'N/A'}
             </span>
             <span className="text-xs font-bold px-2.5 py-1 rounded bg-ink-800 text-ink-300">
-              {booking.type} Booking
+              {booking.type || 'Trampoline'} Booking
             </span>
           </div>
           <button
@@ -97,7 +99,7 @@ export default function BookingDetailsModal({
                     : 'bg-ink-800 text-ink-300 border border-ink-700'
                 }`}
               >
-                {booking.booking_status}
+                {booking.booking_status || 'Pending'}
               </span>
             </div>
           </div>
@@ -109,7 +111,7 @@ export default function BookingDetailsModal({
               <div className="text-xs space-y-0.5">
                 <p className="font-bold text-amber-400">Underpayment Notice</p>
                 <p>
-                  Customer paid <strong>₹{booking.paid_amount.toLocaleString('en-IN')}</strong>, but the expected booking total is <strong>₹{booking.booking_amount.toLocaleString('en-IN')}</strong> (Short by ₹{difference.toLocaleString('en-IN')}).
+                  Customer paid <strong>₹{paidAmount.toLocaleString('en-IN')}</strong>, but the expected booking total is <strong>₹{bookingAmount.toLocaleString('en-IN')}</strong> (Short by ₹{difference.toLocaleString('en-IN')}).
                 </p>
               </div>
             </div>
@@ -124,12 +126,12 @@ export default function BookingDetailsModal({
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-ink-200">
                   <User className="h-4 w-4 text-ink-500" />
-                  <span className="font-semibold">{booking.full_name}</span>
+                  <span className="font-semibold">{booking.full_name || 'Guest'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-ink-200">
                   <Phone className="h-4 w-4 text-ink-500" />
                   <a href={`tel:${booking.mobile_number}`} className="hover:text-volt-400">
-                    {booking.mobile_number}
+                    {booking.mobile_number || 'N/A'}
                   </a>
                 </div>
                 {booking.email && (
@@ -148,16 +150,16 @@ export default function BookingDetailsModal({
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2 text-ink-200">
                   <Calendar className="h-4 w-4 text-ink-500" />
-                  <span>{booking.visit_date}</span>
+                  <span>{booking.visit_date || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-ink-200">
                   <Clock className="h-4 w-4 text-ink-500" />
-                  <span>{booking.preferred_time}</span>
+                  <span>{booking.preferred_time || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-ink-200">
                   <Sparkles className="h-4 w-4 text-ink-500" />
                   <span>
-                    {booking.category} {booking.duration !== 'N/A' && `(${booking.duration})`} · {booking.quantity} {booking.type === 'RFID' ? 'Cards' : 'Guests'}
+                    {booking.category} {booking.duration && booking.duration !== 'N/A' && `(${booking.duration})`} · {booking.quantity || 1} {booking.type === 'RFID' ? 'Cards' : 'Guests'}
                   </span>
                 </div>
               </div>
@@ -183,7 +185,7 @@ export default function BookingDetailsModal({
               <div className="p-3 rounded-xl bg-ink-900 border border-ink-800">
                 <span className="text-[11px] text-ink-400 block uppercase font-bold">Booking Amount</span>
                 <span className="font-display font-black text-xl text-white mt-1 block">
-                  ₹{booking.booking_amount.toLocaleString('en-IN')}
+                  ₹{bookingAmount.toLocaleString('en-IN')}
                 </span>
                 <span className="text-[10px] text-ink-500">Calculated package price</span>
               </div>
@@ -191,7 +193,7 @@ export default function BookingDetailsModal({
               <div className={`p-3 rounded-xl border ${isUnderpaid ? 'bg-amber-950/20 border-amber-500/40' : 'bg-ink-900 border-volt-500/40'}`}>
                 <span className="text-[11px] text-volt-400 block uppercase font-bold">Actual Paid Amount</span>
                 <span className="font-display font-black text-xl text-volt-400 mt-1 block">
-                  ₹{booking.paid_amount.toLocaleString('en-IN')}
+                  ₹{paidAmount.toLocaleString('en-IN')}
                 </span>
                 <span className="text-[10px] text-ink-400">Verified paid amount</span>
               </div>
