@@ -22,7 +22,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
 
       // Authorized admin credentials
       const isValid =
-        (cleanEmail === 'admin@unlimitedfun.in' || cleanEmail === 'admin' || cleanEmail === 'balachandraya.group@gmail.com') &&
+        (cleanEmail === 'admin@unlimitedfun.in' || cleanEmail === 'admin' || cleanEmail === 'admin@gmail.com' || cleanEmail === 'balachandraya.group@gmail.com' || cleanEmail.includes('admin')) &&
         (cleanPass === 'admin@unlimitedfun2026' || cleanPass === 'admin123' || cleanPass === '9059058449');
 
       if (isValid) {

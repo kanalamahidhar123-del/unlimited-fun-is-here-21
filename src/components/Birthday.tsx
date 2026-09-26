@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { CheckCircle2, AlertCircle, Loader2, Cake } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { SITE } from '@/data/site';
+import { createBirthdayEnquiry } from '@/lib/birthdayStore';
 
 interface FormState {
   name: string;
@@ -42,104 +43,16 @@ export default function Birthday() {
     if (!validate()) return;
     setStatus('submitting');
     try {
-      const existing = JSON.parse(
-        localStorage.getItem('unlimited_fun_birthday_enquiries') || '[]'
-      );
-      const newEnquiry = {
-        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      await createBirthdayEnquiry({
         name: form.name.trim(),
         phone: form.phone.trim(),
-        email: form.email.trim() || null,
-        preferred_date: form.preferred_date || null,
-        number_of_guests: form.number_of_guests ? Number(form.number_of_guests) : null,
-        message: form.message.trim() || null,
-        created_at: new Date().toISOString(),
-      };
-      existing.push(newEnquiry);
-      localStorage.setItem(
-        'unlimited_fun_birthday_enquiries',
-        JSON.stringify(existing)
-      );
-
-      // If Google Sheet webhook is configured, forward enquiry row
-      const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
-      if (sheetUrl) {
-        try {
-          const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-          await fetch(sheetUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              timestamp: nowStr,
-              Timestamp: nowStr,
-              name: newEnquiry.name,
-              fullName: newEnquiry.name,
-              full_name: newEnquiry.name,
-              "Full Name": newEnquiry.name,
-              "Customer Name": newEnquiry.name,
-              phone: newEnquiry.phone,
-              phoneNumber: newEnquiry.phone,
-              phone_number: newEnquiry.phone,
-              mobile: newEnquiry.phone,
-              mobile_number: newEnquiry.phone,
-              "Phone Number": newEnquiry.phone,
-              "Mobile Number": newEnquiry.phone,
-              email: newEnquiry.email || '',
-              Email: newEnquiry.email || '',
-              "Email Address": newEnquiry.email || '',
-              booking_date: newEnquiry.preferred_date || '',
-              visit_date: newEnquiry.preferred_date || '',
-              "Booking Date": newEnquiry.preferred_date || '',
-              "Visit Date": newEnquiry.preferred_date || '',
-              time: 'Flexible',
-              booking_time: 'Flexible',
-              "Booking Time": 'Flexible',
-              guests: newEnquiry.number_of_guests || 1,
-              number_of_guests: newEnquiry.number_of_guests || 1,
-              "Number of Guests": newEnquiry.number_of_guests || 1,
-              category: 'Birthday Party',
-              package: 'Birthday Party Package',
-              Package: 'Birthday Party Package',
-              "Selected Duration / Package": 'Birthday Party Package',
-              booking_type: 'Birthday Party',
-              type: 'Birthday Party',
-              "Booking Type": 'Birthday Party',
-              payment_status: 'Not Required',
-              "Payment Status": 'Not Required',
-              booking_status: 'Enquiry Received',
-              "Booking Status": 'Enquiry Received',
-              registration_status: 'Enquiry Received',
-              "Registration Status": 'Enquiry Received',
-              special_request: newEnquiry.message || '',
-              additional_notes: newEnquiry.message || '',
-              "Additional Notes": newEnquiry.message || '',
-              "Special Request": newEnquiry.message || '',
-              notes: newEnquiry.message || '',
-            }),
-          });
-        } catch (sheetErr) {
-          console.error('Google Sheets sync notice:', sheetErr);
-        }
-      }
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const isConfigured = supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co');
-      if (isConfigured) {
-        try {
-          const { error } = await supabase.from('birthday_enquiries').insert({
-            name: newEnquiry.name,
-            phone: newEnquiry.phone,
-            email: newEnquiry.email,
-            preferred_date: newEnquiry.preferred_date,
-            number_of_guests: newEnquiry.number_of_guests,
-            message: newEnquiry.message,
-          });
-          if (error) console.warn('Supabase sync notice:', error.message);
-        } catch (syncErr) {
-          console.warn('Supabase remote sync skipped:', syncErr);
-        }
-      }
+        email: form.email.trim(),
+        preferred_date: form.preferred_date || '',
+        number_of_guests: form.number_of_guests ? Number(form.number_of_guests) : 0,
+        package_name: 'Birthday Party Package',
+        message: form.message.trim(),
+        status: 'New',
+      });
 
       setStatus('success');
       setForm(initial);

@@ -33,6 +33,20 @@ import {
   getNextAvailableOpenDates,
   getAdminDateSummary,
 } from './dateStorage.js';
+import {
+  getAllBirthdayEnquiries,
+  addBirthdayEnquiry,
+  updateBirthdayEnquiry,
+  deleteBirthdayEnquiryById,
+} from './birthdayStorage.js';
+import {
+  fetchSupabaseBookings,
+  fetchSupabaseBirthdayEnquiries,
+  insertSupabaseBooking,
+  insertSupabaseBirthdayEnquiry,
+  deleteSupabaseBooking,
+  deleteSupabaseBirthdayEnquiry,
+} from './supabaseAdmin.js';
 
 function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -288,8 +302,32 @@ export function paymentApiMiddleware(env = process.env) {
     // Route: GET /api/bookings - Fetch ALL customer bookings across all emails
     if (url === '/api/bookings' && req.method === 'GET') {
       try {
-        const bookings = getAllBookings();
-        sendJson(res, 200, { success: true, count: bookings.length, data: bookings });
+        const localBookings = getAllBookings();
+        let supabaseList = [];
+        try {
+          supabaseList = await fetchSupabaseBookings(env);
+        } catch (sErr) {
+          console.warn('Supabase fetch bookings notice in middleware:', sErr.message);
+        }
+
+        // Merge Supabase and local bookings seamlessly without duplicates
+        const map = new Map();
+        localBookings.forEach((b) => {
+          const key = b.booking_id || b.id;
+          if (key) map.set(key, b);
+        });
+        supabaseList.forEach((b) => {
+          const key = b.booking_id || b.id;
+          if (key && !map.has(key)) {
+            map.set(key, b);
+          }
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+
+        sendJson(res, 200, { success: true, count: merged.length, data: merged });
       } catch (err) {
         sendJson(res, 500, { success: false, error: err.message, data: [] });
       }
@@ -328,6 +366,11 @@ export function paymentApiMiddleware(env = process.env) {
         }
 
         const saved = addBooking(parsed);
+        // Background sync to Supabase with service-role credentials if available
+        insertSupabaseBooking(parsed, env).catch((err) =>
+          console.warn('Supabase insert notice in middleware:', err.message)
+        );
+
         sendJson(res, 201, { success: true, data: saved });
       } catch (err) {
         sendJson(res, 500, { success: false, error: err.message });
@@ -359,6 +402,10 @@ export function paymentApiMiddleware(env = process.env) {
         const { parsed } = await parseJsonBody(req);
         const targetId = parsed.id || parsed.booking_id;
         const deleted = deleteBookingById(targetId);
+        // Sync delete with Supabase
+        deleteSupabaseBooking(targetId, env).catch((err) =>
+          console.warn('Supabase delete notice in middleware:', err.message)
+        );
         sendJson(res, 200, { success: deleted });
       } catch (err) {
         sendJson(res, 500, { success: false, error: err.message });
@@ -371,6 +418,98 @@ export function paymentApiMiddleware(env = process.env) {
       try {
         clearBookingsDb();
         sendJson(res, 200, { success: true, message: 'All bookings cleared' });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: GET /api/birthday-enquiries - Fetch ALL birthday enquiries across all emails
+    if (url === '/api/birthday-enquiries' && req.method === 'GET') {
+      try {
+        const localEnquiries = getAllBirthdayEnquiries();
+        let supabaseEnquiries = [];
+        try {
+          supabaseEnquiries = await fetchSupabaseBirthdayEnquiries(env);
+        } catch (sErr) {
+          console.warn('Supabase fetch birthday enquiries notice:', sErr.message);
+        }
+
+        const map = new Map();
+        localEnquiries.forEach((e) => {
+          if (e.id) map.set(e.id, e);
+        });
+        supabaseEnquiries.forEach((e) => {
+          if (e.id && !map.has(e.id)) {
+            map.set(e.id, e);
+          }
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+
+        sendJson(res, 200, { success: true, count: merged.length, data: merged });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message, data: [] });
+      }
+      return;
+    }
+
+    // Route: POST /api/birthday-enquiries - Create and save new birthday enquiry
+    if (url === '/api/birthday-enquiries' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.name || !parsed.phone) {
+          sendJson(res, 400, { success: false, error: 'Name and Phone are required' });
+          return;
+        }
+
+        const saved = addBirthdayEnquiry(parsed);
+        insertSupabaseBirthdayEnquiry(parsed, env).catch((err) =>
+          console.warn('Supabase insert birthday enquiry notice:', err.message)
+        );
+
+        sendJson(res, 201, { success: true, data: saved });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/birthday-enquiries/update - Update status of a birthday enquiry
+    if (url === '/api/birthday-enquiries/update' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.id) {
+          sendJson(res, 400, { success: false, error: 'Enquiry ID is required' });
+          return;
+        }
+        const updated = updateBirthdayEnquiry(parsed.id, parsed);
+        if (!updated) {
+          sendJson(res, 404, { success: false, error: 'Birthday enquiry not found' });
+          return;
+        }
+        sendJson(res, 200, { success: true, data: updated });
+      } catch (err) {
+        sendJson(res, 500, { success: false, error: err.message });
+      }
+      return;
+    }
+
+    // Route: POST /api/birthday-enquiries/delete - Delete a birthday enquiry
+    if (url === '/api/birthday-enquiries/delete' && req.method === 'POST') {
+      try {
+        const { parsed } = await parseJsonBody(req);
+        if (!parsed || !parsed.id) {
+          sendJson(res, 400, { success: false, error: 'Enquiry ID is required' });
+          return;
+        }
+        const deleted = deleteBirthdayEnquiryById(parsed.id);
+        deleteSupabaseBirthdayEnquiry(parsed.id, env).catch((err) =>
+          console.warn('Supabase delete birthday notice:', err.message)
+        );
+        sendJson(res, 200, { success: deleted });
       } catch (err) {
         sendJson(res, 500, { success: false, error: err.message });
       }

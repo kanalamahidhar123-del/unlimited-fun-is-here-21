@@ -15,6 +15,7 @@ import {
   Trash2,
   Megaphone,
   Gauge,
+  Cake,
 } from 'lucide-react';
 import {
   getBookings,
@@ -28,9 +29,15 @@ import {
   type BookingRecord,
   type SystemPaymentMode,
 } from '@/lib/bookingStore';
+import {
+  getBirthdayEnquiries,
+  fetchBirthdayEnquiriesFromServer,
+  type BirthdayEnquiry,
+} from '@/lib/birthdayStore';
 import BookingDetailsModal from './BookingDetailsModal';
 import AdminAnnouncements from './AdminAnnouncements';
 import AdminCapacityTracker from './AdminCapacityTracker';
+import AdminBirthdayEnquiries from './AdminBirthdayEnquiries';
 import { BookingDateManagement } from './BookingDateManagement';
 
 interface AdminDashboardProps {
@@ -38,8 +45,9 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid' | 'booking-dates' | 'announcements' | 'capacity'>('overview');
+  const [tab, setTab] = useState<'overview' | 'all-bookings' | 'rfid' | 'booking-dates' | 'birthdays' | 'announcements' | 'capacity'>('overview');
   const [bookings, setBookings] = useState<BookingRecord[]>(getBookings());
+  const [birthdayCount, setBirthdayCount] = useState<number>(getBirthdayEnquiries().length);
   const [stats, setStats] = useState(getDashboardStats());
   const [selectedBooking, setSelectedBooking] = useState<BookingRecord | null>(null);
   const [sysMode, setSysMode] = useState<SystemPaymentMode>(getSystemPaymentMode());
@@ -55,14 +63,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     // 1. Immediately read local
     const list = getBookings();
     setBookings(list);
+    setBirthdayCount(getBirthdayEnquiries().length);
     setStats(getDashboardStats());
     setSysMode(getSystemPaymentMode());
 
-    // 2. Fetch all bookings from backend server API
+    // 2. Fetch all bookings and birthday enquiries from backend server API
     try {
       const serverList = await fetchBookingsFromServer();
       setBookings(serverList);
       setStats(getDashboardStats());
+    } catch (e) {
+      // ignore
+    }
+
+    try {
+      const serverBirthdays = await fetchBirthdayEnquiriesFromServer();
+      setBirthdayCount(serverBirthdays.length);
     } catch (e) {
       // ignore
     }
@@ -72,9 +88,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     refreshData();
     const handleUpdate = () => refreshData();
     window.addEventListener('unlimited_fun_bookings_updated', handleUpdate);
+    window.addEventListener('unlimited_fun_birthday_enquiries_updated', handleUpdate);
     window.addEventListener('unlimited_fun_payment_mode_updated', handleUpdate);
     return () => {
       window.removeEventListener('unlimited_fun_bookings_updated', handleUpdate);
+      window.removeEventListener('unlimited_fun_birthday_enquiries_updated', handleUpdate);
       window.removeEventListener('unlimited_fun_payment_mode_updated', handleUpdate);
     };
   }, []);
@@ -294,6 +312,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           >
             <CalendarCheck2 className="h-4 w-4" />
             📅 BOOKING DATE MANAGEMENT
+          </button>
+          <button
+            onClick={() => setTab('birthdays')}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-wide transition-all ${
+              tab === 'birthdays'
+                ? 'bg-volt-500 text-ink-950 shadow-md shadow-volt-500/20'
+                : 'bg-ink-900 text-ink-300 hover:text-white hover:bg-ink-800'
+            }`}
+          >
+            <Cake className="h-4 w-4" />
+            🎂 BIRTHDAY ENQUIRIES ({birthdayCount})
           </button>
           <button
             onClick={() => setTab('announcements')}
@@ -795,12 +824,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <BookingDateManagement />
         )}
 
-        {/* 5. MANAGE LATEST INFO / ANNOUNCEMENTS TAB */}
+        {/* 5. BIRTHDAY ENQUIRIES TAB */}
+        {tab === 'birthdays' && (
+          <AdminBirthdayEnquiries onNotify={showToast} />
+        )}
+
+        {/* 6. MANAGE LATEST INFO / ANNOUNCEMENTS TAB */}
         {tab === 'announcements' && (
           <AdminAnnouncements onNotify={showToast} />
         )}
 
-        {/* 6. CAPACITY TRACKER (300/DAY) TAB */}
+        {/* 7. CAPACITY TRACKER (300/DAY) TAB */}
         {tab === 'capacity' && (
           <AdminCapacityTracker
             bookings={bookings}
