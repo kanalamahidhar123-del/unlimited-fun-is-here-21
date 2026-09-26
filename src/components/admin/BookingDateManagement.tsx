@@ -594,8 +594,8 @@ export const BookingDateManagement: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {selectedDateBookings.map((b) => (
-                      <tr key={b.id || b.booking_id} className="hover:bg-white/5">
+                    {selectedDateBookings.map((b, idx) => (
+                      <tr key={b.id || b.booking_id || `sel-date-${idx}`} className="hover:bg-white/5">
                         <td className="p-3 font-mono text-electric-400 font-bold">{b.booking_id}</td>
                         <td className="p-3 font-semibold text-white">{b.full_name}</td>
                         <td className="p-3 text-gray-300">{b.mobile_number}</td>

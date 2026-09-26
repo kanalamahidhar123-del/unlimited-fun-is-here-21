@@ -451,9 +451,9 @@ export default function Booking() {
 
               {lookupResult && lookupResult.length > 0 && (
                 <div className="space-y-4 mt-6">
-                  {lookupResult.map((b) => (
+                  {lookupResult.map((b, idx) => (
                     <div
-                      key={b.id}
+                      key={b.id || b.booking_id || `lookup-${idx}`}
                       className="p-5 rounded-2xl bg-ink-950/80 border border-ink-800 space-y-3"
                     >
                       {(() => {
