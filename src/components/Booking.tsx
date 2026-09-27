@@ -4,11 +4,7 @@ import {
   AlertCircle,
   Loader2,
   Search,
-  Clock,
   Printer,
-  Sparkles,
-  ShieldCheck,
-  Send,
 } from 'lucide-react';
 import { SITE } from '@/data/site';
 import {
@@ -18,7 +14,6 @@ import {
   getDateBookingCount,
   isDateFull,
   isDateOpen,
-  isDateAvailableForCustomer,
   getNextAvailableOpenDates,
   getNextAvailableDate,
   formatFriendlyDate,
@@ -102,11 +97,10 @@ export default function Booking() {
     ? getBookings().find((b) => b.id === confirmedBookingId || b.booking_id === confirmedBookingId) || null
     : null;
 
-  // Daily 300 Capacity & Date Availability Logic
+  // Daily Capacity & Date Availability Logic
   const todayStr = new Date().toISOString().split('T')[0];
   const isTodayFull = isDateFull(todayStr);
-  const isTodayOpen = isDateOpen(todayStr);
-  
+
   const selectedDateBooked = form.visit_date ? getDateBookingCount(form.visit_date) : 0;
   const isSelectedDateOpen = form.visit_date ? isDateOpen(form.visit_date) : true;
   const isSelectedDateFull = form.visit_date ? isDateFull(form.visit_date) : false;
@@ -134,7 +128,7 @@ export default function Booking() {
     } else if (!isDateOpen(form.visit_date)) {
       e.visit_date = 'This date is currently closed for bookings. Please choose another date.';
     } else if (isDateFull(form.visit_date)) {
-      e.visit_date = `Today’s bookings are completely filled. Please try another available date.`;
+      e.visit_date = `Today's bookings are completely filled. Please try another available date.`;
     }
     if (!form.preferred_time) e.preferred_time = 'Preferred time is required';
     if (adultsCount + childrenCount < 1) {
@@ -153,19 +147,17 @@ export default function Booking() {
   const handleSubmit = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
-    if (status === 'submitting') return; // Prevent duplicate submissions
+    if (status === 'submitting') return;
 
-    // Date open check
     if (!isDateOpen(form.visit_date)) {
       setErrorMessage('The selected date is currently closed by administration. Please select another date.');
       return;
     }
 
-    // Daily capacity double-check (300)
     if (isDateFull(form.visit_date)) {
       const nextDate = getNextAvailableDate(form.visit_date);
       setErrorMessage(
-        `Today’s bookings are completely filled. Please try another available date (such as ${formatFriendlyDate(nextDate)}).`
+        `Today's bookings are completely filled. Please try another available date (such as ${formatFriendlyDate(nextDate)}).`
       );
       return;
     }
@@ -622,7 +614,7 @@ export default function Booking() {
                       onChange={(e) => update('visit_date', e.target.value)}
                       className={inputClass}
                     />
-                    {/* Date Status & Alerts */}
+
                     {!isSelectedDateOpen && form.visit_date && (
                       <div className="mt-2.5 rounded-xl bg-flame-500/15 border border-flame-500/40 p-3 text-xs text-flame-300 space-y-2">
                         <div className="flex items-center gap-2 font-bold text-flame-400">
@@ -653,7 +645,7 @@ export default function Booking() {
                       <div className="mt-2.5 rounded-xl bg-flame-500/15 border border-flame-500/40 p-3 text-xs text-flame-300 space-y-2">
                         <div className="flex items-center gap-2 font-bold text-flame-400">
                           <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                          <span>Today’s bookings are completely filled. Please try another available date.</span>
+                          <span>Today's bookings are completely filled. Please try another available date.</span>
                         </div>
                         {nextAvailableDates.length > 0 && (
                           <div className="pt-2 border-t border-flame-500/20 space-y-1.5">
@@ -686,6 +678,11 @@ export default function Booking() {
                         </span>
                       </div>
                     )}
+                    {errors.visit_date && (
+                      <p className={errClass}>
+                        <AlertCircle className="h-3 w-3" /> {errors.visit_date}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -715,11 +712,9 @@ export default function Booking() {
                     <input
                       type="number"
                       min="0"
-                      max="50"
                       value={form.adults}
                       onChange={(e) => update('adults', e.target.value)}
                       className={inputClass}
-                      placeholder="e.g. 2"
                     />
                     {errors.adults && (
                       <p className={errClass}>
@@ -729,34 +724,30 @@ export default function Booking() {
                   </div>
 
                   <div>
-                    <label className={labelClass}>
-                      Number of Children
-                    </label>
+                    <label className={labelClass}>Number of Children</label>
                     <input
                       type="number"
                       min="0"
-                      max="50"
                       value={form.children}
                       onChange={(e) => update('children', e.target.value)}
                       className={inputClass}
-                      placeholder="e.g. 1"
                     />
                   </div>
                 </div>
 
-                {/* Selected Package / Category & Duration */}
+                {/* Category & Duration */}
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
                     <label className={labelClass}>
-                      Selected Package <span className="text-flame-400">*</span>
+                      Category <span className="text-flame-400">*</span>
                     </label>
                     <select
                       value={form.category}
-                      onChange={(e) => update('category', e.target.value as any)}
+                      onChange={(e) => update('category', e.target.value as FormState['category'])}
                       className={inputClass}
                     >
-                      <option value="Trampoline Park">🏃 Trampoline Park (5+ yrs / 2.5ft+)</option>
-                      <option value="Soft Play">🧸 Soft Play (Below 5 yrs / 2.5ft)</option>
+                      <option value="Trampoline Park">Trampoline Park</option>
+                      <option value="Soft Play">Soft Play</option>
                     </select>
                     {errors.category && (
                       <p className={errClass}>
@@ -771,12 +762,12 @@ export default function Booking() {
                     </label>
                     <select
                       value={form.duration}
-                      onChange={(e) => update('duration', e.target.value as any)}
+                      onChange={(e) => update('duration', e.target.value as FormState['duration'])}
                       className={inputClass}
                     >
                       <option value="30 Minutes">30 Minutes</option>
                       <option value="1 Hour">1 Hour</option>
-                      <option value="2 Hours">2 Hours (Best Value)</option>
+                      <option value="2 Hours">2 Hours</option>
                       <option value="3 Hours">3 Hours</option>
                     </select>
                     {errors.duration && (
@@ -787,66 +778,81 @@ export default function Booking() {
                   </div>
                 </div>
 
-                {/* RFID Card Option */}
+                {/* RFID Card Selection */}
                 <div>
-                  <label className={labelClass}>RFID Card Option (Optional)</label>
+                  <label className={labelClass}>RFID Card Option</label>
                   <select
                     value={form.rfid_card_type}
-                    onChange={(e) => update('rfid_card_type', e.target.value as any)}
+                    onChange={(e) => update('rfid_card_type', e.target.value as FormState['rfid_card_type'])}
                     className={inputClass}
                   >
-                    <option value="None">None (Standard Entry)</option>
+                    <option value="None">None (No RFID Card)</option>
                     <option value="Basic RFID Card (₹100)">Basic RFID Card (₹100)</option>
-                    <option value="Premium RFID Card (₹500)">Premium VIP RFID Card (₹500)</option>
+                    <option value="Premium RFID Card (₹500)">Premium RFID Card (₹500)</option>
                   </select>
                 </div>
 
-                {/* Special Request */}
+                {/* Special Requests */}
                 <div>
-                  <label className={labelClass}>Special Request / Message (Optional)</label>
+                  <label className={labelClass}>Special Requests or Notes (Optional)</label>
                   <textarea
+                    rows={3}
                     value={form.special_request}
                     onChange={(e) => update('special_request', e.target.value)}
-                    rows={2}
                     className={inputClass}
-                    placeholder="Any special notes or requirements..."
+                    placeholder="Any group notes, birthday party details, or special arrangements..."
                   />
                 </div>
 
-                {/* Safety Rules Agreement */}
-                <label className="flex items-start gap-3 cursor-pointer pt-2">
-                  <input
-                    type="checkbox"
-                    checked={form.agreed_to_terms}
-                    onChange={(e) => update('agreed_to_terms', e.target.checked)}
-                    className="mt-1 h-5 w-5 rounded border-ink-600 bg-ink-900 text-volt-500 focus:ring-volt-500"
-                  />
-                  <span className="text-xs sm:text-sm text-ink-300">
-                    I agree to follow the park's safety rules and terms. Participants must be below {SITE.weightLimit}.
-                  </span>
-                </label>
-                {errors.agreed_to_terms && (
-                  <p className={errClass}>
-                    <AlertCircle className="h-3 w-3" /> {errors.agreed_to_terms}
-                  </p>
-                )}
+                {/* Price Breakdown Banner */}
+                <div className="rounded-2xl bg-ink-950 p-4 border border-ink-800 flex justify-between items-center">
+                  <div>
+                    <span className="text-xs text-ink-400 block uppercase font-bold tracking-wider">
+                      Estimated Amount
+                    </span>
+                    <span className="text-xs text-ink-300">
+                      ₹{pricePerPerson} × {totalGuests} {totalGuests === 1 ? 'Guest' : 'Guests'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono text-2xl font-black text-volt-400">
+                      ₹{estimatedAmount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Terms Agreement Checkbox */}
+                <div>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.agreed_to_terms}
+                      onChange={(e) => update('agreed_to_terms', e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-ink-700 bg-ink-900 text-volt-500 focus:ring-volt-500"
+                    />
+                    <span className="text-xs text-ink-300 leading-relaxed">
+                      I agree to the <a href={SITE.safetyWaiverUrl || '#'} className="text-volt-400 underline hover:text-volt-300">Safety Rules & Terms</a> and confirm that all information provided is accurate.
+                    </span>
+                  </label>
+                  {errors.agreed_to_terms && (
+                    <p className={errClass}>
+                      <AlertCircle className="h-3 w-3" /> {errors.agreed_to_terms}
+                    </p>
+                  )}
+                </div>
 
                 {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={status === 'submitting'}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-volt-500 px-6 py-4 text-base font-black text-ink-950 hover:bg-volt-400 transition-all active:scale-95 shadow-xl shadow-volt-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-volt-500 px-8 py-4 text-base font-bold text-ink-950 hover:bg-volt-400 transition-colors shadow-xl shadow-volt-500/20 disabled:opacity-50"
                 >
                   {status === 'submitting' ? (
                     <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      SUBMITTING DETAILS...
+                      <Loader2 className="h-5 w-5 animate-spin" /> SUBMITTING...
                     </>
                   ) : (
-                    <>
-                      <Send className="h-5 w-5" />
-                      SUBMIT DETAILS
-                    </>
+                    'CONFIRM & SUBMIT BOOKING'
                   )}
                 </button>
               </form>
