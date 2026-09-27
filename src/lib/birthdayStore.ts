@@ -45,24 +45,8 @@ export async function fetchBirthdayEnquiriesFromServer(): Promise<BirthdayEnquir
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const serverList: BirthdayEnquiry[] = json.data;
-        const localList = getBirthdayEnquiries();
-
-        const map = new Map<string, BirthdayEnquiry>();
-        serverList.forEach((item) => {
-          if (item.id) map.set(item.id, item);
-        });
-        localList.forEach((item) => {
-          if (item.id && !map.has(item.id)) {
-            map.set(item.id, item);
-          }
-        });
-
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-
-        saveBirthdayEnquiries(merged);
-        return merged;
+        saveBirthdayEnquiries(serverList);
+        return serverList;
       }
     }
   } catch (e) {
@@ -90,49 +74,33 @@ export async function createBirthdayEnquiry(
     created_at: new Date().toISOString(),
   };
 
-  const list = getBirthdayEnquiries();
-  const filtered = list.filter((e) => e.id !== newEnquiry.id);
-  filtered.unshift(newEnquiry);
-  saveBirthdayEnquiries(filtered);
+  // =========================================================================
+  // STEP 1: PRIMARY DATABASE INSERTION (Supabase public.birthday_enquiries)
+  // Must succeed before claiming enquiry success. No silent fallback!
+  // =========================================================================
+  const { error: sbError } = await supabase.from('birthday_enquiries').insert({
+    name: newEnquiry.name,
+    phone: newEnquiry.phone,
+    email: newEnquiry.email || null,
+    preferred_date: newEnquiry.preferred_date || null,
+    number_of_guests: newEnquiry.number_of_guests || null,
+    message: newEnquiry.message ? `[${newEnquiry.package_name}] ${newEnquiry.message}` : `Package: ${newEnquiry.package_name}`,
+    status: 'pending',
+  });
 
-  // Sync to Backend Server API
-  try {
-    fetch('/api/birthday-enquiries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEnquiry),
-    }).catch((e) => console.warn('Server API birthday enquiry dispatch notice:', e));
-  } catch (e) {
-    // ignore
+  if (sbError) {
+    console.error('CRITICAL: Supabase birthday enquiry insertion failed:', sbError);
+    throw new Error(`Database submission error: ${sbError.message || 'Unable to store birthday enquiry in Supabase'}`);
   }
 
-  // 1. Primary Source of Truth: Insert into Supabase table (Client-Side Anon Key)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co')) {
-    try {
-      const { error: sbError } = await supabase.from('birthday_enquiries').insert({
-        name: newEnquiry.name,
-        phone: newEnquiry.phone,
-        email: newEnquiry.email || null,
-        preferred_date: newEnquiry.preferred_date || null,
-        number_of_guests: newEnquiry.number_of_guests || null,
-        message: newEnquiry.message ? `[${newEnquiry.package_name}] ${newEnquiry.message}` : `Package: ${newEnquiry.package_name}`,
-        status: 'pending',
-      });
-      if (sbError) {
-        console.error('Supabase birthday enquiry insert error:', sbError);
-      }
-    } catch (sErr) {
-      console.warn('Supabase birthday enquiry sync exception:', sErr);
-    }
-  }
-
-  // Sync to Google Sheets Webhook
+  // =========================================================================
+  // STEP 2: GOOGLE SHEETS BACKUP RECORD (Secondary, non-blocking for DB truth)
+  // =========================================================================
   const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
   if (sheetUrl) {
     try {
       const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-      await fetch(sheetUrl, {
+      fetch(sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
@@ -154,11 +122,27 @@ export async function createBirthdayEnquiry(
           notes: newEnquiry.message,
           status: 'New Enquiry',
         }),
-      });
+      }).catch((e) => console.warn('Google Sheet birthday backup notice:', e));
     } catch (err) {
-      console.warn('Google Sheet birthday sync notice:', err);
+      console.warn('Google Sheet birthday dispatch notice:', err);
     }
   }
+
+  // =========================================================================
+  // STEP 3: UPDATE LOCAL STATE & SERVER RE-SYNC
+  // =========================================================================
+  const list = getBirthdayEnquiries();
+  const filtered = list.filter((e) => e.id !== newEnquiry.id);
+  filtered.unshift(newEnquiry);
+  saveBirthdayEnquiries(filtered);
+
+  try {
+    fetch('/api/birthday-enquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEnquiry),
+    }).then(() => fetchBirthdayEnquiriesFromServer()).catch(() => {});
+  } catch (e) {}
 
   return newEnquiry;
 }

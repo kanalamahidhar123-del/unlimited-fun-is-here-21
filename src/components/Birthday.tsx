@@ -55,11 +55,10 @@ export default function Birthday() {
       });
 
       setStatus('success');
-      setForm(initial);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Birthday enquiry error:', err);
-      setStatus('success');
-      setForm(initial);
+      setStatus('error');
+      setErrors((prev) => ({ ...prev, name: err?.message || 'Failed to submit enquiry. Please try again.' }));
     }
   };
 

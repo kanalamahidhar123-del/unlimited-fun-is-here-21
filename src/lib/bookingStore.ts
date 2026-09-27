@@ -127,29 +127,12 @@ export async function fetchBookingsFromServer(): Promise<BookingRecord[]> {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const serverList: BookingRecord[] = json.data;
-        const localList = getBookings();
-        
-        // Merge server and local bookings without duplicates
-        const map = new Map<string, BookingRecord>();
-        serverList.forEach((b) => {
-          const key = b.booking_id || b.id;
-          if (key) map.set(key, b);
-        });
-        localList.forEach((b) => {
-          const key = b.booking_id || b.id;
-          if (key && !map.has(key)) map.set(key, b);
-        });
-
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-        );
-
-        saveBookings(merged);
-        return getBookings();
+        saveBookings(serverList);
+        return serverList;
       }
     }
   } catch (e) {
-    // server API might be unavailable in static deploy, fallback silently to local
+    console.warn('Server API fetch bookings notice:', e);
   }
   return getBookings();
 }
@@ -212,204 +195,114 @@ export async function createBooking(
     created_at: new Date().toISOString(),
   };
 
-  const existing = getBookings();
-  // Ensure no duplicate with same booking_id
-  const filtered = existing.filter((b) => b.booking_id !== newBooking.booking_id && b.id !== newBooking.id);
-  filtered.unshift(newBooking);
-  saveBookings(filtered);
+  // =========================================================================
+  // STEP 1: PRIMARY DATABASE INSERTION (Supabase public.bookings)
+  // Must succeed before claiming booking success. No silent fallback!
+  // =========================================================================
+  const guestCount = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
+  const catVal = newBooking.category || 'Trampoline Park';
+  const durVal = newBooking.duration || '1 Hour';
+  const statusVal = newBooking.booking_status === 'Confirmed' ? 'confirmed' : newBooking.booking_status === 'Cancelled' ? 'cancelled' : 'pending';
 
-  // Sync to Google Sheet Webhook with all required columns and alias mappings
+  const { error: sbError } = await supabase.from('bookings').insert({
+    full_name: newBooking.full_name,
+    mobile_number: newBooking.mobile_number,
+    email: newBooking.email || null,
+    visit_date: newBooking.visit_date,
+    preferred_time: newBooking.preferred_time,
+    number_of_people: guestCount,
+    category: catVal,
+    duration: durVal,
+    special_request: newBooking.special_request ? `[${newBooking.booking_id}] ${newBooking.special_request}` : `[${newBooking.booking_id}]`,
+    agreed_to_terms: true,
+    status: statusVal,
+  });
+
+  if (sbError) {
+    console.error('CRITICAL: Supabase booking insertion failed:', sbError);
+    throw new Error(`Database submission error: ${sbError.message || 'Unable to store booking in Supabase'}`);
+  }
+
+  // =========================================================================
+  // STEP 2: GOOGLE SHEETS BACKUP RECORD (Secondary, non-blocking for DB truth)
+  // =========================================================================
   const sheetUrl = import.meta.env.VITE_GOOGLE_SHEET_URL || SITE.googleSheetUrl;
   if (sheetUrl) {
     try {
       const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-      const guestTotal = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
       const packageDesc = `${newBooking.category}${newBooking.duration && newBooking.duration !== 'N/A' ? ` (${newBooking.duration})` : ''}`;
       const regStatus = newBooking.booking_status || 'Registration Received';
       const payStatus = newBooking.payment_status || 'Not Required';
       const notes = newBooking.special_request || '';
 
       const payload: Record<string, any> = {
-        // 1. Timestamp
         timestamp: nowStr,
         Timestamp: nowStr,
         created_at: newBooking.created_at,
-
-        // 2. Booking ID
         booking_id: newBooking.booking_id,
         bookingId: newBooking.booking_id,
         "Booking ID": newBooking.booking_id,
-        "Booking Id": newBooking.booking_id,
-        id: newBooking.booking_id,
-
-        // 3. Full Name
         name: newBooking.full_name,
         fullName: newBooking.full_name,
         full_name: newBooking.full_name,
-        customerName: newBooking.full_name,
-        customer_name: newBooking.full_name,
-        "Full Name": newBooking.full_name,
-        "Customer Name": newBooking.full_name,
-        "Name": newBooking.full_name,
-
-        // 4. Phone Number / Mobile
         phone: newBooking.mobile_number,
         phoneNumber: newBooking.mobile_number,
-        phone_number: newBooking.mobile_number,
         mobile: newBooking.mobile_number,
-        mobileNumber: newBooking.mobile_number,
-        mobile_number: newBooking.mobile_number,
-        "Phone Number": newBooking.mobile_number,
-        "Mobile Number": newBooking.mobile_number,
-        "Phone": newBooking.mobile_number,
-        "Mobile": newBooking.mobile_number,
         whatsapp_number: newBooking.whatsapp_number || newBooking.mobile_number,
-        whatsapp: newBooking.whatsapp_number || newBooking.mobile_number,
-        "WhatsApp Number": newBooking.whatsapp_number || newBooking.mobile_number,
-
-        // 5. Email
         email: newBooking.email || '',
-        Email: newBooking.email || '',
-        "Email Address": newBooking.email || '',
-
-        // 6. Booking Type
         booking_type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
-        bookingType: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
-        type: newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
-        "Booking Type": newBooking.type === 'RFID' ? 'RFID Card Booking' : 'Trampoline Booking',
         category: newBooking.category,
-        "Category": newBooking.category,
-
-        // 7. Booking Date
         booking_date: newBooking.visit_date,
-        bookingDate: newBooking.visit_date,
         visit_date: newBooking.visit_date,
-        visitDate: newBooking.visit_date,
-        date: newBooking.visit_date,
-        "Booking Date": newBooking.visit_date,
-        "Visit Date": newBooking.visit_date,
-        "Date": newBooking.visit_date,
-
-        // 8. Booking Time
         booking_time: newBooking.preferred_time,
-        bookingTime: newBooking.preferred_time,
         preferred_time: newBooking.preferred_time,
-        preferredTime: newBooking.preferred_time,
-        time: newBooking.preferred_time,
-        "Booking Time": newBooking.preferred_time,
-        "Preferred Time": newBooking.preferred_time,
-        "Time": newBooking.preferred_time,
-
-        // 9. Number of Guests
-        guests: guestTotal,
-        number_of_guests: guestTotal,
-        numberOfGuests: guestTotal,
-        "Number of Guests": guestTotal,
-        "Guests": `${guestTotal} Guests`,
-        adults: newBooking.adults ?? 1,
-        Adults: newBooking.adults ?? 1,
-        children: newBooking.children ?? 0,
-        Children: newBooking.children ?? 0,
-
-        // 10. Selected Duration / Package
+        guests: guestTotal(newBooking),
+        number_of_guests: guestTotal(newBooking),
         package: packageDesc,
-        Package: packageDesc,
         duration: newBooking.duration,
-        Duration: newBooking.duration,
-        "Selected Duration / Package": packageDesc,
-        "Package / Duration": packageDesc,
         rfid_card: newBooking.rfid_card_type || 'None',
-        "RFID Card": newBooking.rfid_card_type || 'None',
-
-        // 11. Payment Status
         payment_status: payStatus,
-        paymentStatus: payStatus,
-        "Payment Status": payStatus,
         payment_method: newBooking.payment_method || 'Registration Only',
-        "Payment Method": newBooking.payment_method || 'Registration Only',
         paid_amount: newBooking.paid_amount || 0,
-        "Paid Amount": newBooking.paid_amount || 0,
         booking_amount: newBooking.booking_amount || 0,
-        "Booking Amount": newBooking.booking_amount || 0,
-
-        // 12. Registration Status
         registration_status: regStatus,
-        registrationStatus: regStatus,
-        "Registration Status": regStatus,
         booking_status: regStatus,
-        bookingStatus: regStatus,
-        "Booking Status": regStatus,
-
-        // 13. Additional Notes
         notes: notes,
-        additional_notes: notes,
-        additionalNotes: notes,
         special_request: notes,
-        specialRequest: notes,
-        "Additional Notes": notes,
-        "Special Request": notes,
-        "Notes": notes,
       };
 
-      await fetch(sheetUrl, {
+      fetch(sheetUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload),
-      });
+      }).catch((e) => console.warn('Google Sheet backup notice:', e));
     } catch (err) {
-      console.error('Google Sheet webhook sync error:', err);
+      console.warn('Google Sheet dispatch notice:', err);
     }
   }
 
-  // 1. Primary Source of Truth: Insert into Supabase (Client-Side Anon Key)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const isConfigured = supabaseUrl && !supabaseUrl.includes('placeholder.supabase.co');
-  if (isConfigured) {
-    try {
-      const guestCount = (newBooking.adults || 0) + (newBooking.children || 0) || newBooking.quantity || 1;
-      const catVal = newBooking.category || 'Trampoline Park';
-      const durVal = newBooking.duration || '1 Hour';
-      const statusVal = newBooking.booking_status === 'Confirmed' ? 'confirmed' : newBooking.booking_status === 'Cancelled' ? 'cancelled' : 'pending';
+  // =========================================================================
+  // STEP 3: UPDATE LOCAL STATE & SERVER RE-SYNC
+  // =========================================================================
+  const existing = getBookings();
+  const filtered = existing.filter((b) => b.booking_id !== newBooking.booking_id && b.id !== newBooking.id);
+  filtered.unshift(newBooking);
+  saveBookings(filtered);
 
-      const { error: sbError } = await supabase.from('bookings').insert({
-        full_name: newBooking.full_name,
-        mobile_number: newBooking.mobile_number,
-        email: newBooking.email || null,
-        visit_date: newBooking.visit_date,
-        preferred_time: newBooking.preferred_time,
-        number_of_people: guestCount,
-        category: catVal,
-        duration: durVal,
-        special_request: newBooking.special_request ? `[${newBooking.booking_id}] ${newBooking.special_request}` : `[${newBooking.booking_id}]`,
-        agreed_to_terms: true,
-        status: statusVal,
-      });
-
-      if (sbError) {
-        console.error('Supabase booking insert error:', sbError);
-      }
-    } catch (syncErr) {
-      console.warn('Supabase remote sync exception:', syncErr);
-    }
-  }
-
-  // Sync to Central Server Backend API
   try {
-    const res = await fetch('/api/bookings', {
+    fetch('/api/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newBooking),
-    });
-    if (res.ok) {
-      // Re-fetch to guarantee synchronized state
-      await fetchBookingsFromServer();
-    }
-  } catch (e) {
-    console.warn('Server API booking dispatch notice:', e);
-  }
+    }).then(() => fetchBookingsFromServer()).catch(() => {});
+  } catch (e) {}
 
   return newBooking;
+}
+
+function guestTotal(b: BookingRecord): number {
+  return (b.adults || 0) + (b.children || 0) || b.quantity || 1;
 }
 
 export function getBookingStatusBadge(booking: BookingRecord): {

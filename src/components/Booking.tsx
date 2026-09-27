@@ -201,9 +201,9 @@ export default function Booking() {
       setConfirmedBookingId(record.booking_id);
       setStatus('success');
       setForm(initial);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Submission error:', err);
-      setErrorMessage('Something went wrong submitting your details. Please try again or call us.');
+      setErrorMessage(err?.message || 'Something went wrong submitting your details. Please try again or call us.');
       setStatus('error');
     }
   };

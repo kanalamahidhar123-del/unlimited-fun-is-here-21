@@ -37,3 +37,5 @@ lerna-debug.log*
 *.sw?
 *.local
 Thumbs.db
+.env
+.env.local
